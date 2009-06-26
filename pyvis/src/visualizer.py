@@ -60,7 +60,7 @@ class Visualizer(Thread):
 		glPushMatrix()
 		glTranslatef(x,y,0)
 		glColor3f(1,1,0)
-		circle(0, 0, self.sradius)
+		circle(0, 0, self.sradius*0.5)
 		glPopMatrix()
 	
 	def fuelstation(self, x, y, fuel):
@@ -75,15 +75,15 @@ class Visualizer(Thread):
 
 	def relocate(self, x, y):
 
-		if self.lastmaxx < abs(x)*1.1:
-			self.lastmaxx = abs(x)*1.1
-		if self.lastmaxy < abs(y)*1.1:
-			self.lastmaxy = abs(y)*1.1
+		if self.lastmax < abs(x)*1.1:
+			self.lastmax = abs(x)*1.1
+		if self.lastmax < abs(y)*1.1:
+			self.lastmax = abs(y)*1.1
 		
-		if self.sx < self.lastmaxx:
-			self.sx = self.lastmaxx
-		if self.sy < self.lastmaxy:
-			self.sy = self.lastmaxy
+		if self.sx < self.lastmax:
+			self.sx = self.lastmax
+		if self.sy < self.lastmax:
+			self.sy = self.lastmax
 
 #		for c in self.drawers:
 #			if maxsx < abs(c.sx):
@@ -124,10 +124,10 @@ class Visualizer(Thread):
 			if self.window:
 				glutDestroyWindow(self.window)
 				self.window = None
+			self.orbitVM.terminate()
 			return
 			#exit()
 		time.sleep(0.02)
-		self.orbitVM.nextStep()
 		glutPostRedisplay()
 
 
@@ -136,14 +136,13 @@ class Visualizer(Thread):
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
 		
-		self.lastmaxx = 0
-		self.lastmaxy = 0
+		self.lastmax = 0
 		self.relocate(OrbitVM.EarthRadius, OrbitVM.EarthRadius)
 		
 		glOrtho(-self.sx,
 				self.sx,
-				-self.sy,
-				self.sy, -10,10)
+				-self.sx,
+				self.sx, -10,10)
 		
 		glMatrixMode(GL_MODELVIEW)
 
@@ -160,12 +159,15 @@ class Visualizer(Thread):
 		say = self.orbitVM.readport(0x3)
 		#print "sat x=% 0f y=% 0f"%(sax, say) 
 		self.satellite(sax, say)
+		
+		print "t %d         sat2 x=% 0f y=% 0f"%(self.orbitVM.gettime(), sax, say)
 
 		if   self.orbitVM.gettype() == OrbitVM.Hohmann:
 			1
 		elif self.orbitVM.gettype() == OrbitVM.MeetnGreet or self.orbitVM.gettype() == OrbitVM.Eccentric:
 			sax = sax - self.orbitVM.readport(0x4)
 			say = say - self.orbitVM.readport(0x5)
+			
 			self.satellite1(sax, say)
 		elif self.orbitVM.gettype() == OrbitVM.ClearSkies:
 			fx = sax - self.orbitVM.readport(0x4)

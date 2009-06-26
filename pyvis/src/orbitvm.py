@@ -20,9 +20,9 @@ class OrbitVM():
 	def gettype(self):
 		return self.type
 	
-	def run(self):
+	def terminate(self):
 		return
-	
+
 	def readport(self, port):
 		return 0
 	
@@ -30,7 +30,7 @@ class OrbitVM():
 		return 0
 	
 	def gettime(self):
-		return 0
+		return self.t
 	
 	def nextStep(self):
 		self.t = self.t+1
@@ -40,17 +40,11 @@ class DummyVM(OrbitVM):
 	def __init__(self, type, config):
 		OrbitVM.__init__(self, type, config)
 		return
-	
-	def run(self):
-		return
-	
+			
 	def readport(self, port):
 		return port*10e4-self.t*1000
 	
 	def writeport(self, port, val):
-		return 0
-	
-	def gettime(self):
 		return 0
 	
 	def nextStep(self):
