@@ -11,13 +11,15 @@
 int status = 0;
 unsigned int mem_code[SIZE];
 double mem_data[SIZE];
-double port[SIZE];
+double port_in[SIZE];
+double port_out[SIZE];
 unsigned short frames = 0;
 double task = 1001;
 char* image_file = 0;
 char* ports_file = 0;
 char* memory_file = 0;
 int dump = 0, debug = 0;
+int full_dump = 0;
 
 int process();
 
@@ -75,7 +77,7 @@ int main( int argc, char *argv[] )
 	{
 		/* if this is an option */
 		if( argv[i][0] == '-' )
-			switch( strswitch((argv[i])+1,"u","p","d","m","t") )
+			switch( strswitch((argv[i])+1,"u","p","d","m","t","f") )
 			{
 				case 1: /* do full dump (instructions and memory) */
 					dump = 1;
@@ -92,10 +94,15 @@ int main( int argc, char *argv[] )
 					i++;
 					if( i < argc )
 						memory_file = argv[i];
+					break;
 				case 5: /* task number */
 					i++;
 					if( i < argc )
 						task = atoi( argv[i] );
+					break;
+				case 6: /* full dumps */
+					full_dump = 1;
+					break;
 				default:
 					printf( "option \"%s\" is invalid\n", argv[i] );
 			}
@@ -144,12 +151,16 @@ int main( int argc, char *argv[] )
 
 	/* read ports image */
 	if( ports_file )
-			file_read( ports_file, port, SIZE );
+			file_read( ports_file, port_in, SIZE );
 	else
-		port[0x3E80] = 1002;
+		port_in[0x3E80] = 1001;
 	
 	/* well, this is it */
 	process();
+
+	register unsigned int ptr;
+	        for( ptr = 0; ptr < ((full_dump)?SIZE:frames); ptr++ )
+					            if( (mem_data[ptr] != 0.0) || full_dump ) printf( "%04X %f\n", ptr, mem_data[ptr] );
 
 	/* write memory image */
 	if( memory_file )
@@ -157,7 +168,7 @@ int main( int argc, char *argv[] )
 
 	/* write ports image */
 	if( ports_file )
-		file_write( ports_file, port, SIZE );
+		file_write( ports_file, port_out, SIZE );
 
 	return 0;
 }
@@ -170,8 +181,8 @@ int process()
 	{
 		printf( "memory image:\n" );
 		register unsigned int ptr;
-		for( ptr = 0; ptr < frames; ptr++ )
-			if( mem_data[ptr] != 0.0 ) printf( "%04X\t%f\n", ptr, mem_data[ptr] );
+		for( ptr = 0; ptr < ((full_dump)?SIZE:frames); ptr++ )
+			if( (mem_data[ptr] != 0.0) || full_dump ) printf( "%04X %f\n", ptr, mem_data[ptr] );
 		printf( "code image:\n" );
 	}
 
@@ -230,9 +241,9 @@ int process()
 					printf( "%04X\tDiv    %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x50: /* Output */
-				port[r1] = mem_data[r2];
+				port_out[r1] = mem_data[r2];
 				if( debug )
-					sprintf( dbg_str, "\t%f = %f", port[r1], mem_data[r2] );
+					sprintf( dbg_str, "\t%f = %f", port_out[r1], mem_data[r2] );
 				if( debug || dump )
 					printf( "%04X\tOutput %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
@@ -294,7 +305,7 @@ int process()
 					printf( "%04X\tCopy   %04X%s\n", pc, r1, dbg_str );
 				break;
 			case 0x04: /* Input */
-				mem_data[pc] = port[r1];
+				mem_data[pc] = port_in[r1];
 				if( debug )
 					sprintf( dbg_str, "\t\t%f", mem_data[pc] );
 				if( debug || dump )
@@ -311,8 +322,8 @@ int process()
 		printf( "ports image:\n" );
 		register unsigned int ptr;
 		for( ptr = 0; ptr < SIZE; ptr++ )
-			if( port[ptr] != 0.0 )
-				printf( "%04X\t%f\n", ptr, port[ptr] );
+			if( port_out[ptr] != 0.0 )
+				printf( "%04X\t%f\n", ptr, port_out[ptr] );
 	}
 
 	return 0;
