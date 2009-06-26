@@ -19,7 +19,7 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2
     fin = open(sys.argv[1],"rb")
     data = fin.read()
-    #vm = PyVM(data, OrbitVM.Hohmann, 1)
+    vm = PyVM(data, OrbitVM.Hohmann, 1)
     
     vis = Visualizer(vm)
     

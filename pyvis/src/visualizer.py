@@ -36,7 +36,7 @@ class Visualizer(Thread):
 		
 		self.sx = 0
 		self.sy = 0
-		self.sradius = OrbitVM.EarthRadius/10
+		self.sradius = OrbitVM.EarthRadius/15
 		
 	def registerDrawer(self,drawer):
 		self.drawers.append(drawer)
@@ -75,10 +75,10 @@ class Visualizer(Thread):
 
 	def relocate(self, x, y):
 
-		if self.lastmaxx < abs(x):
-			self.lastmaxx = abs(x)
-		if self.lastmaxy < abs(y):
-			self.lastmaxy = abs(y)
+		if self.lastmaxx < abs(x)*1.1:
+			self.lastmaxx = abs(x)*1.1
+		if self.lastmaxy < abs(y)*1.1:
+			self.lastmaxy = abs(y)*1.1
 		
 		if self.sx < self.lastmaxx:
 			self.sx = self.lastmaxx
@@ -158,6 +158,7 @@ class Visualizer(Thread):
 		# self
 		sax = self.orbitVM.readport(0x2)
 		say = self.orbitVM.readport(0x3)
+		#print "sat x=% 0f y=% 0f"%(sax, say) 
 		self.satellite(sax, say)
 
 		if   self.orbitVM.gettype() == OrbitVM.Hohmann:
