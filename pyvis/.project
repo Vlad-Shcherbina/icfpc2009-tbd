@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>hw</name>
+	<name>pyvis</name>
 	<comment></comment>
 	<projects>
+		<project>pyvm</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
