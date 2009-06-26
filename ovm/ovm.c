@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdarg.h>
+#include <string.h>
 
 #define SIZE 16384
 #define MASK 16383
@@ -10,16 +12,65 @@ unsigned int mem_code[SIZE];
 double mem_data[SIZE];
 double port[SIZE];
 
+/* guess what it is */
+unsigned int strswitch( const char* s, ... ) {
+	va_list op;
+	unsigned int ret = 1;
+	va_start( op, s );
+	char *t = va_arg( op, char* );
+	for(; t != 0; t = va_arg(op,char*), ret++ )
+		if( !strcmp(s,t) )
+			break;
+	va_end( op );
+	return (t==0)?0:ret;
+}
+
 /* вытирайте ноги */
 int main( int argc, char *argv[] )
 {
-	if( argc < 1 )
+	if( argc < 2 )
 	{
 		printf( "BAKA YARO!\n" );
 		return -1;
 	}
 
-	FILE* f = fopen( argv[1], "rb" );
+	char* image_file = 0;
+	char* port_read = 0, *port_write = 0; 
+	int dump = 0, debug = 0;
+
+	/* run through parameters for.. WHAT FOR AM I WRITING THIS???! */
+	int i;
+	for( i = 1; i < argc; i++ )
+	{
+		/* if this is an option */
+		if( argv[i][0] == '-' )
+			switch( strswitch((argv[i])+1,"u","pr","pw","d") )
+			{
+				case 1: /* do full dump (instructions and memory) */
+					dump = 1;
+					break;
+				case 2: /* file where ports walues are */
+					i++;
+					if( i < argc )
+						port_read = argv[i];
+					break;
+				case 3: /* where to write final port values */
+					i++;
+					if( i < argc )
+						port_write = argv[i];
+					break;
+				case 4: /* debug everything */
+					debug = 1;
+					break;
+				default:
+					printf( "option \"%s\" is invalid\n", argv[i] );
+			}
+		else
+			image_file = argv[i];
+	}
+
+	/* read image */
+	FILE* f = fopen( image_file, "rb" );
 	if( f == 0 )
 	{
 		printf( "file failure\n" );
@@ -50,11 +101,22 @@ int main( int argc, char *argv[] )
 		return -3;
 	}
 
-	printf( "read %u frames\n", frame_addr );
+	if( dump )
+		printf( "read %u frames\n", frame_addr );
+
+	/* dump */
+	if( dump )
+	{
+		printf( "memory image:\n" );
+		register unsigned int ptr;
+		for( ptr = 0; ptr < frame_addr; ptr++ )
+			printf( "%04X\t%f\n", ptr, mem_data[ptr] );
+		printf( "data image:\n" );
+	}
 
 	/* the interpreter */
 	unsigned short pc;
-	for( pc = 0; pc < SIZE; pc++ )
+	for( pc = 0; pc < frame_addr; pc++ )
 	{
 		unsigned short r1, r2;
 		unsigned int instr = mem_code[pc];
@@ -75,19 +137,19 @@ int main( int argc, char *argv[] )
 				continue;
 			/* D-type */
 			case 0x10: /* Add r1 r2 */
-				printf( "%04X\tAdd %04X %04X\n", pc, r1, r2 );
+				printf( "%04X\tAdd    %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[r1] + mem_data[r2];
 				break;
 			case 0x20: /* Sub */
-				printf( "%04X\tSub %04X %04X\n", pc, r1, r2 );
+				printf( "%04X\tSub    %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[r1] - mem_data[r2];
 				break;
 			case 0x30: /* Mult */
-				printf( "%04X\tMult %04X %04X\n", pc, r1, r2 );
+				printf( "%04X\tMult   %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[r1] * mem_data[r2];
 				break;
 			case 0x40: /* Div */
-				printf( "%04X\tDiv %04X %04X\n", pc, r1, r2 );
+				printf( "%04X\tDiv    %04X %04X\n", pc, r1, r2 );
 				if( mem_data[r2] == 0.0 )
 					mem_data[pc] = 0.0;
 				else
@@ -98,12 +160,12 @@ int main( int argc, char *argv[] )
 				port[r1] = mem_data[r2];
 				break;
 			case 0x60: /* Phi */
-				printf( "%04X\tPhi %04X %04X\n", pc, r1, r2 );
+				printf( "%04X\tPhi    %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[(status==1)?r1:r2];
 				break;
 			/* S-type */
 			case 0x01: /* Cmpz */
-				printf( "%04X\tCmpz %04X ", pc, r1 ); 
+				printf( "%04X\tCmpz   %04X    ", pc, r1 ); 
 				switch( r2 )
 				{
 					case 0x00: /* < */
@@ -143,7 +205,7 @@ int main( int argc, char *argv[] )
 				mem_data[pc] = port[r1];
 				break;
 			default: /* WHAT */
-				printf( "opcode %02X @ %u is failure\n", opcode, pc );
+				printf( "opcode %02X @ %u is a failure\n", opcode, pc );
 				return -4;
 		}
 	}
