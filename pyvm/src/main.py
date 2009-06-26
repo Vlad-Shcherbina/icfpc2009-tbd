@@ -132,7 +132,6 @@ if __name__ == '__main__':
         print 'step'
         vm.execute()
         vm.printStats()
-    print vm.outPort[0]
     
     
     
