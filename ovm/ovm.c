@@ -11,8 +11,8 @@
 int status = 0;
 unsigned int mem_code[SIZE];
 double mem_data[SIZE];
-double port_in[SIZE];
-double port_out[SIZE];
+double ports_in[SIZE];
+double ports_out[SIZE];
 unsigned short frames = 0;
 double task = 1001;
 char* image_file = 0;
@@ -151,16 +151,19 @@ int main( int argc, char *argv[] )
 
 	/* read ports image */
 	if( ports_file )
-			file_read( ports_file, port_in, SIZE );
+			file_read( ports_file, ports_in, SIZE );
 	else
-		port_in[0x3E80] = 1001;
+		ports_in[0x3E80] = task;
 	
 	/* well, this is it */
 	process();
 
-	register unsigned int ptr;
-	        for( ptr = 0; ptr < ((full_dump)?SIZE:frames); ptr++ )
-					            if( (mem_data[ptr] != 0.0) || full_dump ) printf( "%04X %f\n", ptr, mem_data[ptr] );
+	if( full_dump )
+	{
+		register unsigned int ptr;
+		for( ptr = 0; ptr < SIZE; ptr++ )
+			printf( "%04X %f\n", ptr, mem_data[ptr] );
+	}
 
 	/* write memory image */
 	if( memory_file )
@@ -168,7 +171,7 @@ int main( int argc, char *argv[] )
 
 	/* write ports image */
 	if( ports_file )
-		file_write( ports_file, port_out, SIZE );
+		file_write( ports_file, ports_out, SIZE );
 
 	return 0;
 }
@@ -181,8 +184,8 @@ int process()
 	{
 		printf( "memory image:\n" );
 		register unsigned int ptr;
-		for( ptr = 0; ptr < ((full_dump)?SIZE:frames); ptr++ )
-			if( (mem_data[ptr] != 0.0) || full_dump ) printf( "%04X %f\n", ptr, mem_data[ptr] );
+		for( ptr = 0; ptr < frames; ptr++ )
+			if( mem_data[ptr] != 0.0 ) printf( "%04X %f\n", ptr, mem_data[ptr] );
 		printf( "code image:\n" );
 	}
 
@@ -197,7 +200,7 @@ int process()
 		/* this is slow and retarded */
 		if( (opcode&0xF0) == 0 ) /* S-type */
 		{
-			r2 = 0x0F&(instr>>20);
+			r2 = 0x07&(instr>>21);
 			r1 = MASK&instr;
 		} else
 		{						/* D-type */
@@ -241,9 +244,9 @@ int process()
 					printf( "%04X\tDiv    %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x50: /* Output */
-				port_out[r1] = mem_data[r2];
+				ports_out[r1] = mem_data[r2];
 				if( debug )
-					sprintf( dbg_str, "\t%f = %f", port_out[r1], mem_data[r2] );
+					sprintf( dbg_str, "\t%f", mem_data[r2] );
 				if( debug || dump )
 					printf( "%04X\tOutput %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
@@ -305,7 +308,7 @@ int process()
 					printf( "%04X\tCopy   %04X%s\n", pc, r1, dbg_str );
 				break;
 			case 0x04: /* Input */
-				mem_data[pc] = port_in[r1];
+				mem_data[pc] = ports_in[r1];
 				if( debug )
 					sprintf( dbg_str, "\t\t%f", mem_data[pc] );
 				if( debug || dump )
@@ -322,8 +325,8 @@ int process()
 		printf( "ports image:\n" );
 		register unsigned int ptr;
 		for( ptr = 0; ptr < SIZE; ptr++ )
-			if( port_out[ptr] != 0.0 )
-				printf( "%04X\t%f\n", ptr, port_out[ptr] );
+			if( ports_out[ptr] != 0.0 )
+				printf( "%04X\t%f\n", ptr, ports_out[ptr] );
 	}
 
 	return 0;
