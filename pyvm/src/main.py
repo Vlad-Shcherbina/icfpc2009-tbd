@@ -1,27 +1,83 @@
 import sys
 import os
 import struct
+from operator import *
+from math import *
 
 class VM(object):
     def __init__(self,data):
         assert len(data)%12 == 0
-        size = len(data)//12
-        frames = [data[12*i:12*(i+1)] for i in range(size)]
+        self.size = len(data)//12
+        frames = [data[12*i:12*(i+1)] for i in range(self.size)]
+        
+        self.status = 0 # or reset in each frame?
+        
         self.code = [0]*2**14
-        self.memory = [0.0]*2**14
+        self.mem = [0.0]*2**14
+        self.port = [0.0]*2**14
           
-        for i in range(size):
+        for i in range(self.size):
             if i%2 == 0:
-                value,instr = struct.unpack("<di",frames[i])
+                value,instr = struct.unpack("<dI",frames[i])
             else:
-                instr,value = struct.unpack("<id",frames[i])
+                instr,value = struct.unpack("<Id",frames[i])
             self.code[i] = instr
-            self.memory[i] = value
+            self.mem[i] = value
 
-        for i in range(size):
-            print self.code[i],self.memory[i]
-#        print self.instructions
-#        print self.memory
+        for i in range(self.size):
+            print self.code[i],self.mem[i]
+            
+    def execute(self):
+        i = 0
+        for i in range(self.size):
+            instr = self.code[i]
+            dOp = instr>>28
+            if dOp != 0:
+                r1 = (instr>>14)&0x3FFF
+                r2 = instr&0x3FFF            
+                if dOp == 1:
+                    self.mem[i] = self.mem[r1]+self.mem[r2]
+                elif dOp == 2:
+                    self.mem[i] = self.mem[r1]-self.mem[r2]
+                elif dOp == 3:
+                    self.mem[i] = self.mem[r1]*self.mem[r2]
+                elif dOp == 4:
+                    if self.mem[r2] == 0.0:
+                        self.mem[i] = 0.0
+                    else:
+                        self.mem[i] = self.mem[r1]/self.mem[r2]
+                elif dOp == 5:
+                    self.port[r1] = self.mem[r2]
+                elif dOp == 6:
+                    if self.status == 1:
+                        self.mem[i] = self.mem[r1]
+                    else:
+                        self.mem[i] = self.mem[r2]
+                else:
+                    assert False,'unknown D-op'
+            else:
+                sOp = instr>>24
+                assert sOp <= 4
+                r1 = instr&0x3FFF
+                if sOp == 0:
+                    pass
+                elif sOp == 1:
+                    cmpOp = (instr>>20)&7
+                    if [lt,le,eq,ge,gt][cmpOp](self.mem[r1],0.0):
+                        self.status = 1
+                    else:
+                        self.status = 0
+                elif sOp == 2:
+                    self.mem[i] = sqrt(self.mem[r1])
+                elif sOp == 3:
+                    self.mem[i] = self.mem[r1]
+                elif sOp == 4:
+                    self.mem[i] = self.port[r1]
+                else:
+                    assert False,'unknown S-op'
+                    
+                    
+                    
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2
@@ -30,3 +86,5 @@ if __name__ == '__main__':
         data = fin.read()
         
     vm = VM(data)
+    vm.execute()
+    print 'ok'
