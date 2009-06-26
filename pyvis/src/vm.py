@@ -55,10 +55,10 @@ class VM(object):
             self.mem[i] = value
 
         self.currentStep = 0
-        self.portWriteHistory = []
+        self.portWriteHistory = [[]]
 
     def writePort(self,addr,value):
-        assert isisntance(value,float)
+        assert isinstance(value,float)
         if self.inPort[addr] == value:
             return
         self.inPort[addr] = value
@@ -70,7 +70,6 @@ class VM(object):
         self.writePort(0x3E80,float(number))
     
     def execute(self,debug=False):
-        self.portWriteHistory.append([])
         self.currentStep += 1
         i = 0
         if debug:
@@ -128,6 +127,8 @@ class VM(object):
             if debug:        
                 print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
                 print ';    status =',self.status
+        self.portWriteHistory.append([])
+
     def printStats(self):
         print 'Score:',self.outPort[0]
         print 'Fuel:',self.outPort[1]
@@ -145,7 +146,7 @@ class VM(object):
         
         result = [struct.pack(">III",0xCAFEBABE,teamID,self.scenario)]
         for i,portWrites in enumerate(self.portWriteHistory):
-            result.apend(struct.pack(">II",i,len())) 
+            result.append(struct.pack(">II",i,len(portWrites))) 
             for addr,value in portWrites:
                 result.append(struct.pack(">Id",addr,value))
         
