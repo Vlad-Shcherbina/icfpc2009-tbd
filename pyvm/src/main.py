@@ -14,7 +14,8 @@ class VM(object):
         
         self.code = [0]*2**14
         self.mem = [0.0]*2**14
-        self.port = [0.0]*2**14
+        self.inPort = [0.0]*2**14
+        self.outPort = [0.0]*2**14
           
         for i in range(self.size):
             if i%2 == 0:
@@ -47,7 +48,7 @@ class VM(object):
                     else:
                         self.mem[i] = self.mem[r1]/self.mem[r2]
                 elif dOp == 5:
-                    self.port[r1] = self.mem[r2]
+                    self.outPort[r1] = self.mem[r2]
                 elif dOp == 6:
                     if self.status == 1:
                         self.mem[i] = self.mem[r1]
@@ -72,11 +73,11 @@ class VM(object):
                 elif sOp == 3:
                     self.mem[i] = self.mem[r1]
                 elif sOp == 4:
-                    self.mem[i] = self.port[r1]
+                    self.mem[i] = self.inPort[r1]
                 else:
                     assert False,'unknown S-op'
                     
-                    
+
                     
 
 if __name__ == '__main__':
@@ -86,5 +87,12 @@ if __name__ == '__main__':
         data = fin.read()
         
     vm = VM(data)
-    vm.execute()
+    vm.inPort[0x3E80] = 1001.0
+    while vm.outPort[0] == 0.0:
+        print 'step'
+        vm.execute()
+    print vm.outPort[0]
+    
+    
+    
     print 'ok'
