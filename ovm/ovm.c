@@ -16,6 +16,8 @@ char* image_file = 0;
 char* port_read = 0, *port_write = 0;
 int dump = 0, debug = 0;
 
+int process();
+
 /* guess what it is */
 unsigned int strswitch( const char* s, ... ) {
 	va_list op;
@@ -105,7 +107,7 @@ int main( int argc, char *argv[] )
 	if( dump )
 		printf( "read %u frames\n", frame_addr );
 
-	port[0x3E80] = 1001;
+	port[0x3E80] = 1002;
 	process();
 	process();
 	process();
@@ -113,6 +115,7 @@ int main( int argc, char *argv[] )
 	return 0;
 }
 
+/* do all the dirty work */
 int process()
 {
 	/* dump */
@@ -122,12 +125,12 @@ int process()
 		register unsigned int ptr;
 		for( ptr = 0; ptr < frames; ptr++ )
 			if( mem_data[ptr] != 0.0 ) printf( "%04X\t%f\n", ptr, mem_data[ptr] );
-		printf( "data image:\n" );
+		printf( "code image:\n" );
 	}
 
 	/* the interpreter */
 	unsigned short pc;
-	char dbg_str[64]="";
+	char dbg_str[128]="";
 	for( pc = 0; pc < frames; pc++ )
 	{
 		unsigned short r1, r2;
@@ -196,44 +199,59 @@ int process()
 				break;
 			/* S-type */
 			case 0x01: /* Cmpz */
-				printf( "%04X\tCmpz   %04X    ", pc, r1 ); 
+				{
+				char *cmp = "";
 				switch( r2 )
 				{
 					case 0x00: /* < */
-						printf( "<\n" );
+						cmp = "<";
 						status = (mem_data[r1]<0.0)?1:0;
 						break;
 					case 0x01: /* <= */
-						printf( "<=\n" );
+						cmp = "<=";
 						status = (mem_data[r1]<=0.0)?1:0;
 						break;
 					case 0x02: /* == */
-						printf( "==\n" );
+						cmp = "==";
 						status = (mem_data[r1]==0.0)?1:0;
 						break;
 					case 0x03: /* >= */
-						printf( ">=\n" );
+						cmp = ">=";
 						status = (mem_data[r1]>=0.0)?1:0;
 						break;
 					case 0x04: /* > */
-						printf( ">\n" );
+						cmp = ">";
 						status = (mem_data[r1]>0.0)?1:0;
 						break;
 					default:
-						printf( "invalid imm %X @ %u\n", r2, pc );
+						cmp = "?";
 				}
+				if( debug )
+					sprintf( dbg_str, "\t%f %s 0.0  status=%d", mem_data[r1], cmp, status );
+				if( debug || dump )
+					printf( "%04X\tCmpz   %04X    %s%s\n", pc, r1, cmp, dbg_str );
 				break;
+				}
 			case 0x02: /* Sqrt */
-				printf( "%04X\tSqrt %04X\n", pc, r1 );
 				mem_data[pc] = sqrt( mem_data[r1] );
+				if( debug )
+					sprintf( dbg_str, "\t\t%f = sqrt(%f)", mem_data[pc], mem_data[r1] );
+				if( debug || dump )
+					printf( "%04X\tSqrt %04X%s\n", pc, r1, dbg_str );
 				break;
 			case 0x03: /* Copy */
-				printf( "%04X\tCopy %04X\n", pc, r1 );
 				mem_data[pc] = mem_data[r1];
+				if( debug )
+					sprintf( dbg_str, "\t\t%f", mem_data[pc] );
+				if( debug || dump )
+					printf( "%04X\tCopy %04X%s\n", pc, r1, dbg_str );
 				break;
 			case 0x04: /* Input */
-				printf( "%04X\tInput %04X\n", pc, r1 );
 				mem_data[pc] = port[r1];
+				if( debug )
+					sprintf( dbg_str, "\t\t%f", mem_data[pc] );
+				if( debug || dump )
+					printf( "%04X\tInput %04X%s\n", pc, r1, dbg_str );
 				break;
 			default: /* WHAT */
 				printf( "opcode %02X @ %u is a failure\n", opcode, pc );
