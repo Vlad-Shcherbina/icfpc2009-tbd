@@ -1,6 +1,6 @@
 
 from orbitvm import OrbitVM
-from pyvm import VM
+from vm import VM
 
 class PyVM(OrbitVM):
 	def __init__(self, data, type, config):
