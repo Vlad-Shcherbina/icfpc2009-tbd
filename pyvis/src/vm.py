@@ -68,6 +68,10 @@ class VM(object):
         assert self.currentStep == 0
         self.scenario = int(number)
         self.writePort(0x3E80,float(number))
+        
+    def impulse(self,dvx,dvy):
+        self.writePort(2,float(dvx))
+        self.writePort(3,float(dvy))
     
     def execute(self,debug=False):
         self.currentStep += 1
