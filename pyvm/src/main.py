@@ -58,11 +58,13 @@ class VM(object):
 #        for i in range(self.size):
 #            print self.code[i],self.mem[i]
 
-    def execute(self):
+    def execute(self,debug=False):
         i = 0
-        print '           before'+' '*45+'after'
+        if debug:
+            print '           before'+' '*45+'after'
         for i in range(self.size):
-            print "%20f"%self.mem[i],'  ',
+            if debug:
+                print "%20f"%self.mem[i],'  ',
             instr = self.code[i]
             dOp = instr>>28
                     
@@ -94,9 +96,9 @@ class VM(object):
                 assert sOp <= 4
                 r1 = instr&0x3FFF
                 if sOp == 0:
-                    pass
+                    self.mem[i] = self.mem[i]
                 elif sOp == 1:
-                    cmpOp = (instr>>20)&15
+                    cmpOp = (instr>>21)&7
                     if [lt,le,eq,ge,gt][cmpOp](self.mem[r1],0.0):
                         self.status = 1
                     else:
@@ -109,14 +111,19 @@ class VM(object):
                     self.mem[i] = self.inPort[r1]
                 else:
                     assert False,'unknown S-op'
-                    
-            print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
-            print ';    status =',self.status
+            
+            if debug:        
+                print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
+                print ';    status =',self.status
     def printStats(self):
         print 'Score:',self.outPort[0]
         print 'Fuel:',self.outPort[1]
         print 'sx ',self.outPort[2]
         print 'sy ',self.outPort[3]
+        
+    def memDump(self):
+        for i in range(self.size):
+            print "%04X %f"%(i,self.mem[i])
                     
 
 if __name__ == '__main__':
@@ -131,6 +138,8 @@ if __name__ == '__main__':
         vm.printStats()
         print 'step'
         vm.execute()
+        vm.memDump()
+        break
         vm.printStats()
     
     
