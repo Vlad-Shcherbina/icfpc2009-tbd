@@ -110,7 +110,8 @@ class VM(object):
                 else:
                     assert False,'unknown S-op'
                     
-            print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i])
+            print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
+            print ';    status =',self.status
     def printStats(self):
         print 'Score:',self.outPort[0]
         print 'Fuel:',self.outPort[1]
