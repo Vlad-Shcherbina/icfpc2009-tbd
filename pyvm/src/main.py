@@ -60,8 +60,9 @@ class VM(object):
 
     def execute(self):
         i = 0
+        print '           before'+' '*45+'after'
         for i in range(self.size):
-            print "%20f"%self.mem[i],
+            print "%20f"%self.mem[i],'  ',
             instr = self.code[i]
             dOp = instr>>28
                     
@@ -110,7 +111,11 @@ class VM(object):
                     assert False,'unknown S-op'
                     
             print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i])
-
+    def printStats(self):
+        print 'Score:',self.outPort[0]
+        print 'Fuel:',self.outPort[1]
+        print 'sx ',self.outPort[2]
+        print 'sy ',self.outPort[3]
                     
 
 if __name__ == '__main__':
@@ -122,8 +127,10 @@ if __name__ == '__main__':
     vm = VM(data)
     vm.inPort[0x3E80] = 1001.0
     while vm.outPort[0] == 0.0:
+        vm.printStats()
         print 'step'
         vm.execute()
+        vm.printStats()
     print vm.outPort[0]
     
     
