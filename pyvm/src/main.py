@@ -39,7 +39,7 @@ class VM(object):
         self.size = len(data)//12
         frames = [data[12*i:12*(i+1)] for i in range(self.size)]
         
-        self.status = 0 # or reset in each frame?
+        self.status = 0
         
         self.code = [0]*2**14
         self.mem = [0.0]*2**14
@@ -54,12 +54,14 @@ class VM(object):
             self.code[i] = instr
             self.mem[i] = value
 
+        print '%x'%self.code[6]
 #        for i in range(self.size):
 #            print self.code[i],self.mem[i]
 
     def execute(self):
         i = 0
         for i in range(self.size):
+            print "%20f"%self.mem[i],
             instr = self.code[i]
             dOp = instr>>28
                     
