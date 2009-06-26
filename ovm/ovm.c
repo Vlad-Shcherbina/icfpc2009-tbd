@@ -11,6 +11,10 @@ int status = 0;
 unsigned int mem_code[SIZE];
 double mem_data[SIZE];
 double port[SIZE];
+unsigned short frames = 0;
+char* image_file = 0;
+char* port_read = 0, *port_write = 0;
+int dump = 0, debug = 0;
 
 /* guess what it is */
 unsigned int strswitch( const char* s, ... ) {
@@ -33,10 +37,6 @@ int main( int argc, char *argv[] )
 		printf( "BAKA YARO!\n" );
 		return -1;
 	}
-
-	char* image_file = 0;
-	char* port_read = 0, *port_write = 0; 
-	int dump = 0, debug = 0;
 
 	/* run through parameters for.. WHAT FOR AM I WRITING THIS???! */
 	int i;
@@ -100,23 +100,35 @@ int main( int argc, char *argv[] )
 		printf( "this is so unexpected, (read %d bytes) at %u\n", rd, frame_addr );
 		return -3;
 	}
+	frames = frame_addr;
 
 	if( dump )
 		printf( "read %u frames\n", frame_addr );
 
+	port[0x3E80] = 1001;
+	process();
+	process();
+	process();
+
+	return 0;
+}
+
+int process()
+{
 	/* dump */
 	if( dump )
 	{
 		printf( "memory image:\n" );
 		register unsigned int ptr;
-		for( ptr = 0; ptr < frame_addr; ptr++ )
-			printf( "%04X\t%f\n", ptr, mem_data[ptr] );
+		for( ptr = 0; ptr < frames; ptr++ )
+			if( mem_data[ptr] != 0.0 ) printf( "%04X\t%f\n", ptr, mem_data[ptr] );
 		printf( "data image:\n" );
 	}
 
 	/* the interpreter */
 	unsigned short pc;
-	for( pc = 0; pc < frame_addr; pc++ )
+	char dbg_str[64]="";
+	for( pc = 0; pc < frames; pc++ )
 	{
 		unsigned short r1, r2;
 		unsigned int instr = mem_code[pc];
@@ -137,31 +149,50 @@ int main( int argc, char *argv[] )
 				continue;
 			/* D-type */
 			case 0x10: /* Add r1 r2 */
-				printf( "%04X\tAdd    %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[r1] + mem_data[r2];
+				if( debug )
+					sprintf( dbg_str, "\t%f = %f + %f", mem_data[pc], mem_data[r1], mem_data[r2] );
+				if( debug || dump ) 
+					printf( "%04X\tAdd    %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x20: /* Sub */
-				printf( "%04X\tSub    %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[r1] - mem_data[r2];
+				if( debug )
+					sprintf( dbg_str, "\t%f = %f - %f", mem_data[pc], mem_data[r1], mem_data[r2] );
+				if( debug || dump )
+					printf( "%04X\tSub    %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x30: /* Mult */
-				printf( "%04X\tMult   %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[r1] * mem_data[r2];
+				if( debug )
+					sprintf( dbg_str, "\t%f = %f * %f", mem_data[pc], mem_data[r1], mem_data[r2] );
+				if( debug || dump )
+					printf( "%04X\tMult   %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x40: /* Div */
-				printf( "%04X\tDiv    %04X %04X\n", pc, r1, r2 );
 				if( mem_data[r2] == 0.0 )
 					mem_data[pc] = 0.0;
 				else
 					mem_data[pc] = mem_data[r1] / mem_data[r2];
+				if( debug )
+					sprintf( dbg_str, "\t%f = %f / %f", mem_data[pc], mem_data[r1], mem_data[r2] );
+				if( debug || dump )
+					printf( "%04X\tDiv    %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x50: /* Output */
-				printf( "%04X\tOutput %04X %04X\n", pc, r1, r2 );
 				port[r1] = mem_data[r2];
+				if( debug )
+					sprintf( dbg_str, "\t%f = %f", port[r1], mem_data[r2] );
+				if( debug || dump )
+					printf( "%04X\tOutput %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			case 0x60: /* Phi */
-				printf( "%04X\tPhi    %04X %04X\n", pc, r1, r2 );
 				mem_data[pc] = mem_data[(status==1)?r1:r2];
+				if( debug )
+					sprintf( dbg_str, "\t(status==%d), %f = %s%f ? %s%f", status, mem_data[pc], 
+									(status==1)?"*":"", mem_data[r1], (status==1)?"":"*", mem_data[r2] );
+				if( debug || dump )
+					printf( "%04X\tPhi    %04X %04X%s\n", pc, r1, r2, dbg_str );
 				break;
 			/* S-type */
 			case 0x01: /* Cmpz */
@@ -208,6 +239,15 @@ int main( int argc, char *argv[] )
 				printf( "opcode %02X @ %u is a failure\n", opcode, pc );
 				return -4;
 		}
+	}
+
+	if( dump )
+	{
+		printf( "ports image:\n" );
+		register unsigned int ptr;
+		for( ptr = 0; ptr < SIZE; ptr++ )
+			if( port[ptr] != 0.0 )
+				printf( "%04X\t%f\n", ptr, port[ptr] );
 	}
 
 	return 0;
