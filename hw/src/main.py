@@ -17,10 +17,13 @@ def pyprimes(n):
             result.append(i)
     return result
 
+class Test():
+    pass
+
 if __name__ == '__main__':
     n = 100000
 
-    start = time.clock()    
+    start = time.clock()
     print 'python',len(pyprimes(n))
     print time.clock()-start,'s'
 
