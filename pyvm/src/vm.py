@@ -2,6 +2,8 @@ import struct
 from operator import *
 from math import *
 
+teamID = 160
+
 def instrToStr(instr):
     dOp = instr>>28
     if dOp != 0:
@@ -55,14 +57,17 @@ class VM(object):
         self.currentStep = 0
         self.portWriteHistory = []
 
-    def writePort(self,index,value):
+    def writePort(self,addr,value):
         assert isisntance(value,float)
-        self.inPort[index] = value
-        self.portWriteHistory[-1].append((index,value))
+        if self.inPort[addr] == value:
+            return
+        self.inPort[addr] = value
+        self.portWriteHistory[-1].append((addr,value))
 
     def setScenario(self,number):
         assert self.currentStep == 0
-        self.writePort(0x3E80,number)
+        self.scenario = int(number)
+        self.writePort(0x3E80,float(number))
     
     def execute(self,debug=False):
         self.portWriteHistory.append([])
@@ -132,3 +137,17 @@ class VM(object):
     def memDump(self):
         for i in range(self.size):
             print "%04X %f"%(i,self.mem[i])
+            
+    def getSolution(self):
+        assert len(self.portWriteHistory[-1]) == 0
+        if self.outPort[0] <= 0.0:
+            print "Warning: score is nonpositive!!!!!!!!!!",self.outPort[0]
+        
+        result = [struct.pack(">III",0xCAFEBABE,teamID,self.scenario)]
+        for i,portWrites in enumerate(self.portWriteHistory):
+            result.apend(struct.pack(">II",i,len())) 
+            for addr,value in portWrites:
+                result.append(struct.pack(">Id",addr,value))
+        
+        return ''.join(result)
+        
