@@ -152,9 +152,10 @@ class VM(object):
         
         result = [struct.pack("<III",0xCAFEBABE,teamID,self.scenario)]
         for i,portWrites in enumerate(self.portWriteHistory):
-            result.append(struct.pack("<II",i,len(portWrites))) 
-            for addr,value in portWrites.items():
-                result.append(struct.pack("<Id",addr,value))
+            if len(portWrites) > 0 or i == len(self.portWriteHistory)-1:
+                result.append(struct.pack("<II",i,len(portWrites))) 
+                for addr,value in portWrites.items():
+                    result.append(struct.pack("<Id",addr,value))
         
         return ''.join(result)
 

@@ -11,12 +11,15 @@ if __name__ == '__main__':
     vm.setScenario(1001)
     while vm.stats.score == 0.0:
         print 'step'
+        vm.execute()
         vm.changeSpeed(10,12)
         vm.changeSpeed(10,12) # overwrite previous
-        vm.execute()
         #vm.memDump()
         vm.printStats()
-        break # to finish after first iteration
+        if True:
+            vm.execute()
+            break # to finish after first iteration
+    
     
     with open('solution','w') as fout:
         fout.write(vm.getSolution())
