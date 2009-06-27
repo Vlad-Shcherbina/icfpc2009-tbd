@@ -1,3 +1,4 @@
+from copy import copy
 import struct
 from operator import *
 from math import *
@@ -5,12 +6,25 @@ from collections import defaultdict
 
 __all__ = [
     "instrToStr",
+    "teamID",
+    "VM",
 ]
 
 teamID = 160
 
 class O(object):
     pass
+
+class State(object):
+    __slots__ = (
+        'scenario',
+        'score',
+        'fuel',
+        'objects', # list of coordiante pairs. First pair - our sat, second - fuel station (if present)
+        'radius', # for hohmann problem
+        'fuel2', # on fuel station
+        'collected', # list of bools
+        )
 
 class VM(object):
     def __init__(self,data):
@@ -38,12 +52,10 @@ class VM(object):
 
         self.currentStep = 0
         self.portWriteHistory = [{}]
-        self.stats = O()
+        
+        self.stats = O() # STATS FIELD IS DEPRECATED. USE STATE INSTEAD
         self.stats.hoh = O()
-        self.stats.mag = O()
-        self.stats.emg = O()
-        self.stats.ocs = O()
-
+        
     def writePort(self,addr,value):
         # Low-level method
         assert isinstance(value,float)
@@ -57,6 +69,8 @@ class VM(object):
         self.scenario = int(number)
         self.writePort(0x3E80,float(number))
         self.updateStats()
+        self.state = State()
+        self.state.scenario = float(number)
         
     def changeSpeed(self,dvx,dvy):
         self.writePort(2,float(dvx))
@@ -124,6 +138,26 @@ class VM(object):
         self.portWriteHistory.append({})
         self.changeSpeed(0,0)
         self.updateStats()
+        self.updateState()
+        
+    def updateState(self):
+        self.state.score = self.outPort[0]
+        self.state.fuel = self.outPort[1]
+        self.state.objects = []
+        self.state.objects.append((self.outPort[2],self.outPort[3]))
+        if self.state.scenario >= 1001 and self.state.scenario <= 1004:
+            self.state.radius = self.outPort[4]
+        elif self.state.scenario >= 2001 and self.state.scenario <= 2004 or\
+            self.state.scenario >= 3001 and self.state.scenario <= 3004:
+            self.state.objects.append((self.outPort[4],self.outPort[5]))
+        elif self.state.scenario >= 4001 and self.state.scenario <= 4004:
+            # fuel station
+            self.state.objects.append((self.outPort[4],self.outPort[5]))
+            self.state.fuel2 = self.outPort[6]
+            self.state.collected = []
+            for i in range(12):
+                self.state.objects.append((self.outPort[3*i+7],self.outPort[3*i+8]))
+                self.state.collected.append(self.outPort[3*i+7] == 1.0)
 
     def updateStats(self):
         self.stats.score = self.outPort[0]
@@ -135,10 +169,9 @@ class VM(object):
         # ETC ETC ETC
 
     def printStats(self):
-        print 'Score:',self.stats.score
-        print 'Fuel:',self.stats.fuel
-        print 'sx ',self.stats.sx
-        print 'sy ',self.stats.sy
+        print 'Score:',self.state.score
+        print 'Fuel:',self.state.fuel
+        print 'coords: ',self.state.objects[0]
         
     def memDump(self):
         for i in range(self.size):
@@ -146,11 +179,11 @@ class VM(object):
             
     def getSolution(self):
         self.portWriteHistory[-1] = {}
-        if self.stats.score <= 0.0:
+        if self.state.score <= 0.0:
             print "Warning: (getSolution)"\
-                "score is nonpositive!!!!!!!!!!",self.stats.score
+                "score is nonpositive!!!!!!!!!!",self.state.score
         
-        result = [struct.pack("<III",0xCAFEBABE,teamID,self.scenario)]
+        result = [struct.pack("<III",0xCAFEBABE,teamID,int(self.state.scenario))]
         for i,portWrites in enumerate(self.portWriteHistory):
             if len(portWrites) > 0 or i == len(self.portWriteHistory)-1:
                 result.append(struct.pack("<II",i,len(portWrites))) 
