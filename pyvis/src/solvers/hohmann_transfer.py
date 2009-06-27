@@ -20,6 +20,8 @@ class transfer:
         sx, sy = vm.stats.sx, vm.stats.sy
         r = sqrt(sx**2 + sy**2)
 
+        assert (0 <= self.state <= 3)
+
         if self.state == 0:
             # sample the trajectory to determine which way we are going
 
@@ -38,27 +40,32 @@ class transfer:
             dVy = -sx * dV / self.r1
             vm.changeSpeed(dVx, dVy)
 
-            self.lastR = r
+            #self.lastR = r
+            self.timeLeft = int(round(timeRequired(self.r1, self.r2)))
+            print self.timeLeft
             self.state = 2
             return 0
 
         elif self.state == 2:
-            # wait for the apogee, then make the second pulse
+            # wait for the transfer to be over, then make the second pulse
 
-            if self.r1 < self.lastR < r or self.r1 > self.lastR > r:
-                self.lastR = r
-                return 0
-            else: # if we are going back, we are past the peak
+            self.timeLeft -= 1
+            
+            if self.timeLeft == 0:
                 dV = self.spin * self.direction * dV2(self.r1, self.r2)
                 dVx =  sy * dV / r
                 dVy = -sx * dV / r
                 vm.changeSpeed(dVx, dVy)
                 self.state = 3
                 return self.spin
+            else:
+                return 0
             
         elif self.state == 3:
-            pass
+            return self.spin
         
+    
+
 def predictPosition(sx, sy, r2):
     """ Predict the coordinates after a Hohmann transfer from the current orbit to r2. """
     
@@ -67,6 +74,16 @@ def predictPosition(sx, sy, r2):
 
 def timeRequired(r1, r2):
     return pi * sqrt((r1+r2)**3/(8*mu))
-    
-    
-    
+
+def fuelRequired(r1,r2):
+    return dV1(r1,r2) + dV2(r1,r2)
+
+def radiusFromTime(r1, t):
+    cuberoot = lambda x: x**(1/3.0)
+    return cuberoot((t/pi)**2 * 8 * mu) - r1
+
+def integerTimeApprox(r1, r2):
+    """ Returns a radius close to r2 that can be reached from r1 in integer time. """
+    t = timeRequired(r1, r2)
+    tint = round(t)
+    return radiusFromTime(r1, tint)    
