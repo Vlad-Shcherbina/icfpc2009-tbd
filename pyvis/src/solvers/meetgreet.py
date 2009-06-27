@@ -38,8 +38,8 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
 
-    with open("../../../task/bin2.obf","rb") as fin:
-        data = fin.read()
+    fin - open("../../../task/bin2.obf","rb")
+    data = fin.read()
         
     vm = VM(data)
     vm.setScenario(2000.0 + int(sys.argv[1]))
@@ -88,13 +88,17 @@ if __name__ == '__main__':
     
 class MeetGreetController:
     def __init__(self, vm):
+        self.vm = vm
+        
         vm.execute()
         self.sx1, self.sy1 = selfCoords(vm)
         self.tx1, self.ty1 = targetCoords(vm)
         self.r1 = sqrt(self.sx1**2 + self.sy1**2)
         self.r2 = sqrt(self.tx1**2 + self.ty1**2)
         self.state = 1
-    def step(self, vm):
+        
+    def step(self):
+        vm = self.vm
         if self.state == 1:
             self.state=2
             pass

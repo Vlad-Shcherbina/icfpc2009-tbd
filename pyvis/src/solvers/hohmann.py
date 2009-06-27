@@ -11,8 +11,8 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
 
-    with open("../../../task/bin1.obf","rb") as fin:
-        data = fin.read()
+    fin = open("../../../task/bin1.obf","rb")
+    data = fin.read()
         
     vm = VM(data)
     vm.setScenario(1000.0 + int(sys.argv[1]))
