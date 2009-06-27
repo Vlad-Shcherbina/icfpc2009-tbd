@@ -7,6 +7,17 @@ def printStats(vm):
     sx, sy = vm.stats.sx, vm.stats.sy
     print "Fuel: %f; Rcurrent: %f; Rdest: %f" % (vm.outPort[1],  sqrt(sx**2 + sy**2), vm.outPort[4])
 
+class HohmannController:
+    def __init__(self, vm):
+        self.vm = vm
+        vm.execute()
+        r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
+        r2 = vm.outPort[4]
+        self.trans = transfer(r1, r2)
+        
+    def step(self):
+        self.trans.step(self.vm)
+
 if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
