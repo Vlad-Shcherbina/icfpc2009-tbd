@@ -1,5 +1,4 @@
-import psyco
-psyco.full()
+from __future__ import with_statement
 
 import sys
 import re
@@ -84,8 +83,8 @@ class SolutionThread(Thread):
 				self.solution = self.vm.getVMImpl().getSolution()
 				fname = "solutions/sol_%04d_%06d_%s.osf"%(type, score,
 			                re.sub(r'[\s:]', "_", time.ctime()))
-				fout = open(fname,'wb')
-				fout.write(self.solution)
+				with open(fname,'wb') as fout:
+				    fout.write(self.solution)
 				print "stored into "+ fname
 				break
 		return

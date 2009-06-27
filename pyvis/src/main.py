@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import sys
 import os
 import struct
@@ -21,23 +23,23 @@ if __name__ == '__main__':
     config = 4
 
     if 0:
-        fin = open("../../task/bin1.obf","rb")
-        data = fin.read()
+        with open("../../task/bin1.obf","rb") as fin:
+            data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
         solver = TransferController(vm.getVMImpl())
     elif 1:
-        fin = open("../../task/bin2.obf","rb")
-        data = fin.read()
+        with open("../../task/bin2.obf","rb") as fin:
+            data = fin.read()
         vm = PyVM(data, OrbitVM.MeetnGreet, config)
         solver = MeetGreetController(vm.getVMImpl())
     elif 0:
-        fin = open("../../task/bin3.obf","rb")
-        data = fin.read()
+        with  open("../../task/bin3.obf","rb") as fin:
+            data = fin.read()
         vm = PyVM(data, OrbitVM.Eccentric, config)
         solver = None
     elif 0:
-        fin = open("../../task/bin4.obf","rb")
-        data = fin.read()
+        with open("../../task/bin4.obf","rb") as fin:
+            data = fin.read()
         vm = PyVM(data, OrbitVM.ClearSkies, config)
         solver = None
     
