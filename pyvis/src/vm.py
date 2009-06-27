@@ -24,6 +24,7 @@ class State(object):
         'radius', # for hohmann problem
         'fuel2', # on fuel station
         'collected', # list of bools
+        'moon', # pair of coordinates. Moon is not an ordinary object (it has mass)
         )
 
 class VM(object):
@@ -170,6 +171,7 @@ class VM(object):
             for i in range(12):
                 self.state.objects.append((self.outPort[3*i+7],self.outPort[3*i+8]))
                 self.state.collected.append(self.outPort[3*i+7] == 1.0)
+            self.state.moon = (self.outPort[0x64],self.outPort[0x65])
 
     def updateStats(self):
         self.stats.score = self.outPort[0]
