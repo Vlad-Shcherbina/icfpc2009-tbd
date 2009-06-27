@@ -1,40 +1,22 @@
 import struct
 from operator import *
 from math import *
+from collections import defaultdict
+
+__all__ = [
+    "instrToStr",
+]
 
 teamID = 160
 
-def instrToStr(instr):
-    dOp = instr>>28
-    if dOp != 0:
-        r1 = (instr>>14)&0x3FFF
-        r2 = instr&0x3FFF
-        fmt = {
-            1:"add mem[%(r1)04X],mem[%(r2)04X]",
-            2:"sub mem[%(r1)04X],mem[%(r2)04X]",
-            3:"mul mem[%(r1)04X],mem[%(r2)04X]",
-            4:"div mem[%(r1)04X],mem[%(r2)04X]",
-            5:"write outPort[%(r1)04X],mem[%(r2)04X]",
-            6:"phi mem[%(r1)04X],mem[%(r2)04X]",
-            }[dOp]
-    else:
-        sOp = instr>>24
-        r1 = instr&0x3FFF
-        cmpOp = (instr>>20)&15
-        cmpStr = ['<','<=','=','>=','>'][cmpOp]
-        fmt = {
-            0:'noop',
-            1:'cmp mem[%(r1)04X] %(cmpStr)s 0.0',
-            2:'sqrt mem[%(r1)04X]',
-            3:'copy mem[%(r1)04X]',
-            4:'input inPort[%(r1)04X]',
-            }[sOp]
-
-    return fmt%locals()
-
+class O(object):
+    pass
 
 class VM(object):
     def __init__(self,data):
+        """
+        Data is contents of vm binary
+        """
         assert len(data)%12 == 0
         self.size = len(data)//12
         frames = [data[12*i:12*(i+1)] for i in range(self.size)]
@@ -43,8 +25,8 @@ class VM(object):
         
         self.code = [0]*2**14
         self.mem = [0.0]*2**14
-        self.inPort = [0.0]*2**14
-        self.outPort = [0.0]*2**14
+        self.inPort = defaultdict(float)
+        self.outPort = defaultdict(float)
           
         for i in range(self.size):
             if i%2 == 0:
@@ -55,25 +37,33 @@ class VM(object):
             self.mem[i] = value
 
         self.currentStep = 0
-        self.portWriteHistory = [[]]
+        self.portWriteHistory = [{}]
+        self.stats = O()
+        self.stats.hoh = O()
+        self.stats.mag = O()
+        self.stats.emg = O()
+        self.stats.ocs = O()
 
     def writePort(self,addr,value):
+        # Low-level method
         assert isinstance(value,float)
         if self.inPort[addr] == value:
             return
         self.inPort[addr] = value
-        self.portWriteHistory[-1].append((addr,value))
+        self.portWriteHistory[-1][addr] = value
 
     def setScenario(self,number):
         assert self.currentStep == 0
         self.scenario = int(number)
         self.writePort(0x3E80,float(number))
+        self.updateStats()
         
-    def impulse(self,dvx,dvy):
+    def changeSpeed(self,dvx,dvy):
         self.writePort(2,float(dvx))
         self.writePort(3,float(dvy))
     
     def execute(self,debug=False):
+        """Perform one step of simulation"""
         self.currentStep += 1
         i = 0
         if debug:
@@ -131,28 +121,68 @@ class VM(object):
             if debug:        
                 print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
                 print ';    status =',self.status
-        self.portWriteHistory.append([])
+        self.portWriteHistory.append({})
+        self.changeSpeed(0,0)
+        self.updateStats()
+
+    def updateStats(self):
+        self.stats.score = self.outPort[0]
+        self.stats.fuel = self.outPort[1]
+        self.stats.sx = self.outPort[2]
+        self.stats.sy = self.outPort[3]
+        if self.scenario >= 1001 and self.scenario <= 1004:
+            self.stats.hoh.r = self.outPort[4]
+        # ETC ETC ETC
 
     def printStats(self):
-        print 'Score:',self.outPort[0]
-        print 'Fuel:',self.outPort[1]
-        print 'sx ',self.outPort[2]
-        print 'sy ',self.outPort[3]
+        print 'Score:',self.stats.score
+        print 'Fuel:',self.stats.fuel
+        print 'sx ',self.stats.sx
+        print 'sy ',self.stats.sy
         
     def memDump(self):
         for i in range(self.size):
             print "%04X %f"%(i,self.mem[i])
             
     def getSolution(self):
-        assert len(self.portWriteHistory[-1]) == 0
-        if self.outPort[0] <= 0.0:
-            print "Warning: score is nonpositive!!!!!!!!!!",self.outPort[0]
+        self.portWriteHistory[-1] = {}
+        if self.stats.score <= 0.0:
+            print "Warning: (getSolution)"\
+                "score is nonpositive!!!!!!!!!!",self.stats.score
         
         result = [struct.pack(">III",0xCAFEBABE,teamID,self.scenario)]
         for i,portWrites in enumerate(self.portWriteHistory):
             result.append(struct.pack(">II",i,len(portWrites))) 
-            for addr,value in portWrites:
+            for addr,value in portWrites.items():
                 result.append(struct.pack(">Id",addr,value))
         
         return ''.join(result)
+
+def instrToStr(instr):
+    dOp = instr>>28
+    if dOp != 0:
+        r1 = (instr>>14)&0x3FFF
+        r2 = instr&0x3FFF
+        fmt = {
+            1:"add mem[%(r1)04X],mem[%(r2)04X]",
+            2:"sub mem[%(r1)04X],mem[%(r2)04X]",
+            3:"mul mem[%(r1)04X],mem[%(r2)04X]",
+            4:"div mem[%(r1)04X],mem[%(r2)04X]",
+            5:"write outPort[%(r1)04X],mem[%(r2)04X]",
+            6:"phi mem[%(r1)04X],mem[%(r2)04X]",
+            }[dOp]
+    else:
+        sOp = instr>>24
+        r1 = instr&0x3FFF
+        cmpOp = (instr>>20)&15
+        cmpStr = ['<','<=','=','>=','>'][cmpOp]
+        fmt = {
+            0:'noop',
+            1:'cmp mem[%(r1)04X] %(cmpStr)s 0.0',
+            2:'sqrt mem[%(r1)04X]',
+            3:'copy mem[%(r1)04X]',
+            4:'input inPort[%(r1)04X]',
+            }[sOp]
+
+    return fmt%locals()
         
