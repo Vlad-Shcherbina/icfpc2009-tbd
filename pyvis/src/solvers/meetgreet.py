@@ -1,12 +1,21 @@
 from vm import VM
 import sys
 from math import sqrt
+from math import atan2
 import hohmann_transfer as ht
 import orbital as o
 
 def printStats(vm):
-    print "Fuel: %f; Self: %s; Target: %s" % (vm.outPort[1],  str(selfCoords(vm)), str(targetCoords(vm)))
-
+    #print "Fuel: %f; Self: %s; Target: %s" % (vm.outPort[1],  str(selfCoords(vm)), str(targetCoords(vm)))
+    sx = selfCoords(vm)[0]
+    sy = selfCoords(vm)[1]
+    tx = targetCoords(vm)[0]
+    ty = targetCoords(vm)[1]
+    sR = sqrt(sx**2+sy**2)
+    tR = sqrt(tx**2+ty**2)
+    sa = atan2(sy,sx)
+    ta = atan2(ty,tx)
+    print "Fuel: %f; Self: R: %s a: %s; Target R: %s a:%s" % (vm.outPort[1], sR, sa, tR, ta) 
 def selfCoords(vm):     # >>>>> move this into the vm class later
     return (vm.stats.sx, vm.stats.sy)
 
