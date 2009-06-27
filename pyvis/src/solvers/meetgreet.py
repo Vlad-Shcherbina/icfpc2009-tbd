@@ -109,7 +109,7 @@ class MeetGreetController:
             self.sspin = o.getSpin(self.sx1, self.sy1, self.sx2, self.sy2)
             self.tspin = o.getSpin(self.tx1, self.ty1, self.tx2, self.ty2)
     
-            assert (self.sspin == self.tspin)     # fuck me if I know how to solve this otherwise
+            #assert (self.sspin == self.tspin)     # fuck me if I know how to solve this otherwise
             self.state = 3
             pass
         if self.state == 3:
@@ -122,13 +122,15 @@ class MeetGreetController:
             if projectedDistance(sx, sy, tx, ty, self.tspin) < 1000:
                 self.state = 4
                 pass
-            time.sleep(0.000001)
+            #time.sleep(0.000001)
             pass
         if self.state == 4:
             self.trans = ht.transfer(self.r1, self.r2, self.sspin)
             self.state = 5
+            self.s5timer = 0
+        
         if self.state == 5:
             self.trans.step(vm)
-            time.sleep(0.001)
+            #time.sleep(0.001)
             pass
  

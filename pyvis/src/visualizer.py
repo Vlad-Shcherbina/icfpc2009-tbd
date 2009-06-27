@@ -1,5 +1,8 @@
 from __future__ import with_statement
 
+import psyco
+psyco.full()
+
 import sys
 import re
 
@@ -32,36 +35,49 @@ def circle(x,y,r,segments=22):
 def drawText( value, x,y,  windowHeight, windowWidth, step = 18 ):
 	"""Draw the given text at given 2D position in window
 	"""
-	glMatrixMode(GL_PROJECTION);
+	#glMatrixMode(GL_PROJECTION);
 	# For some reason the GL_PROJECTION_MATRIX is overflowing with a single push!
 	# glPushMatrix()
-	matrix = glGetDouble( GL_PROJECTION_MATRIX )
+	#matrix = glGetDouble( GL_PROJECTION_MATRIX )
 	
-	glLoadIdentity();
-	glOrtho(0.0, windowHeight or 32, 0.0, windowWidth or 32, -1.0, 1.0)
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
+	#glLoadIdentity();
+	#glOrtho(0.0, windowHeight or 32, 0.0, windowWidth or 32, -1.0, 1.0)
+	#glMatrixMode(GL_MODELVIEW);
+	#glPushMatrix();
+	#glLoadIdentity();
 	glRasterPos2i(x, y);
 	lines = 0
 ##	import pdb
 ##	pdb.set_trace()
 	for character in value:
 		if character == '\n':
-			glRasterPos2i(x, y-(lines*18))
+			glRasterPos2i(x, y+(lines*18))
+			lines = lines+1
 		else:
-			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(character));
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
+			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(character));
+	#glPopMatrix();
+	#glMatrixMode(GL_PROJECTION);
 	# For some reason the GL_PROJECTION_MATRIX is overflowing with a single push!
 	# glPopMatrix();
-	glLoadMatrixd( matrix ) # should have un-decorated alias for this...
+	#glLoadMatrixd( matrix ) # should have un-decorated alias for this...
 	
-	glMatrixMode(GL_MODELVIEW);
+	#glMatrixMode(GL_MODELVIEW);
 
 
-				
-				
+class StatsDrawer:
+	def __init__(self, vm):
+		self.vm = vm
+	def __call__(self):
+		vm = self.vm
+		#glPushMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glOrtho(0.0, 100, 0.0, 100, -1.0, 1.0)
+		glLoadIdentity();
+		glColor3f(1,1,1)
+		drawText("Fuel:%d\nsx: %09f\nsy:%09f"%(vm.stats.fuel, vm.stats.sx, vm.stats.sy),
+				 0, 0, 100, 100)
+		#glPopMatrix();
+		
 				
 class SolutionThread(Thread):
 	def __init__(self, vm, solver):
@@ -73,10 +89,10 @@ class SolutionThread(Thread):
 	def run(self):
 		while not self.term:
 			self.vm.step()
-			#if self.solver:
-			self.solver.step()
+			if self.solver:
+				self.solver.step()
 
-			time.sleep(0.00000002+0.00000)
+			time.sleep(0.00000002+0.00010)
 			score = self.vm.readport(0)
 			type = self.vm.type+self.vm.config
 			if score != 0:
@@ -126,6 +142,13 @@ class Visualizer(Thread):
 	def earth(self):
 		glColor3f(0,1,0)
 		circle(0, 0, OrbitVM.EarthRadius)
+
+	def moon(self, x, y):
+		glPushMatrix()
+		glTranslatef(x, y, 0)
+		glColor3f(1,1,1)
+		circle(0, 0, OrbitVM.EarthRadius/5)
+		glPopMatrix()
 
 	def satellite(self, x, y):
 		self.relocate(x, y)
@@ -255,9 +278,13 @@ class Visualizer(Thread):
 			ffuel = self.vm.readport(0x6)
 			self.fuelstation(sax, say, ffuel)
 			for c in range(11):
-				sax = sax - self.vm.readport(0x7+c*3)
-				say = say - self.vm.readport(0x8+c*3)
-				self.satellite1(sax, say)
+				sanx = sax - self.vm.readport(0x7+c*3)
+				sany = say - self.vm.readport(0x8+c*3)
+				self.satellite1(sanx, sany)
+
+			sanx = sax - self.vm.getVMImpl().state.moon[0]
+			sany = say - self.vm.getVMImpl().state.moon[1]
+			self.moon(sanx, sany)
 
 		for drawer in self.drawers:
 			drawer()

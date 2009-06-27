@@ -1,3 +1,6 @@
+import psyco
+psyco.full()
+
 from copy import copy
 import struct
 from operator import *
