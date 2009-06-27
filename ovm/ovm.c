@@ -118,6 +118,7 @@ int main( int argc, char *argv[] )
 					i++;
 					if( i < argc )
 						solution_file = argv[i];
+					break;
 				default:
 					printf( "option \"%s\" is invalid\n", argv[i] );
 			}
@@ -441,7 +442,16 @@ int run_solution( char *file, double *score )
 		}
 		/* go to that step */
 		for(; time<ival; time++ )
+		{
+			if( *score != 0.0 )
+			{
+				fprintf( stderr, "non-zero (%f) score occured too early at step %d\n", *score, time-1 );
+				fclose( f );
+				return 0;
+			}
 			process();
+			*score = ports_out[0];
+		}
 	
 		/* read port values */
 		if( fread(&ival,sizeof(ival),1,f) != 1 )
