@@ -22,7 +22,7 @@ if __name__ == '__main__':
     
     config = 3
 
-    if 0:
+    if 1:
         with open("../../task/bin1.obf","rb") as fin:
             data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
             data = fin.read()
         vm = PyVM(data, OrbitVM.Eccentric, config)
         solver = MeetGreetController(vm.getVMImpl())
-    elif 1:
+    elif 0:
         with open("../../task/bin4.obf","rb") as fin:
             data = fin.read()
         vm = PyVM(data, OrbitVM.ClearSkies, config)
