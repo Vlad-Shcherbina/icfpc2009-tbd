@@ -4,7 +4,7 @@ from math import sqrt
 from math import atan2
 import hohmann_transfer as ht
 import orbital as o
-
+import time
 def printStats(vm):
     #print "Fuel: %f; Self: %s; Target: %s" % (vm.outPort[1],  str(selfCoords(vm)), str(targetCoords(vm)))
     sx = selfCoords(vm)[0]
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     assert (sspin == tspin)     # fuck me if I know how to solve this otherwise
     
     while vm.outPort[0] == 0.0:
-        printStats(vm)
+        #printStats(vm)
         sx, sy = selfCoords(vm)
         tx, ty = targetCoords(vm)
         prsx, prsy = ht.predictPosition(sx, sy, r2)
@@ -75,6 +75,8 @@ if __name__ == '__main__':
         
         vm.execute()
 
+    printStats(vm)
+    print prsx, prsy
     trans = ht.transfer(r1, r2, sspin)
 
     while vm.outPort[0] == 0.0:
@@ -83,4 +85,46 @@ if __name__ == '__main__':
         vm.execute()
 
     print vm.outPort[0]
-
+    
+class MeetGreetController:
+    def __init__(self, vm):
+        vm.execute()
+        self.sx1, self.sy1 = selfCoords(vm)
+        self.tx1, self.ty1 = targetCoords(vm)
+        self.r1 = sqrt(self.sx1**2 + self.sy1**2)
+        self.r2 = sqrt(self.tx1**2 + self.ty1**2)
+        self.state = 1
+    def step(self, vm):
+        if self.state == 1:
+            self.state=2
+            pass
+        if self.state == 2:
+            self.sx2, self.sy2 = selfCoords(vm)
+            self.tx2, self.ty2 = targetCoords(vm)
+    
+            self.sspin = o.getSpin(self.sx1, self.sy1, self.sx2, self.sy2)
+            self.tspin = o.getSpin(self.tx1, self.ty1, self.tx2, self.ty2)
+    
+            assert (self.sspin == self.tspin)     # fuck me if I know how to solve this otherwise
+            self.state = 3
+            pass
+        if self.state == 3:
+            #printStats(vm)
+            sx, sy = selfCoords(vm)
+            tx, ty = targetCoords(vm)
+            prsx, prsy = ht.predictPosition(sx, sy, self.r2)
+            t = ht.timeRequired(self.r1, self.r2)
+        
+            if projectedDistance(sx, sy, tx, ty, self.tspin) < 1000:
+                self.state = 4
+                pass
+            time.sleep(0.000001)
+            pass
+        if self.state == 4:
+            self.trans = ht.transfer(self.r1, self.r2, self.sspin)
+            self.state = 5
+        if self.state == 5:
+            self.trans.step(vm)
+            time.sleep(0.001)
+            pass
+ 

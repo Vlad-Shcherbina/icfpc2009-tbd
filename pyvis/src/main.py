@@ -8,9 +8,9 @@ from math import *
 from visualizer import Visualizer
 from orbitvm import OrbitVM, DummyVM
 from pyvmwrap import PyVM
-
+from vm import VM
 from solvers.hohmann_transfer import transfer
-
+from solvers.meetgreet import MeetGreetController
 
 if __name__ == '__main__':
 
@@ -18,18 +18,18 @@ if __name__ == '__main__':
     #vm = OrbitVM(OrbitVM.Eccentric, 1)
     #vm = DummyVM(OrbitVM.ClearSkies, 1)
     
-    config = 1
+    config = 2
 
-    if 1:
+    if 0:
         fin = open("../../task/bin1.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
         solver = transfer(vm.getVMImpl())
-    elif 0:
+    elif 1:
         fin = open("../../task/bin2.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.MeetnGreet, config)
-        solver = transfer(vm.getVMImpl())
+        solver = MeetGreetController(vm.getVMImpl())#transfer(vm.getVMImpl())
     elif 0:
         fin = open("../../task/bin3.obf","rb")
         data = fin.read()
