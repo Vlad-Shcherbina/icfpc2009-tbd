@@ -1,19 +1,13 @@
-from math import sqrt
+from math import sqrt, pi
+from orbital import mu, getSpin
 
 dV1 = lambda r1, r2: sqrt(mu/r1) * (sqrt(2*r2/(r1+r2)) - 1)
 dV2 = lambda r1, r2: sqrt(mu/r2) * (1 - sqrt(2*r1/(r1+r2)))
 
-mu = 6.67428 * 6.0 * 10**13
-
 class transfer:
-    def __init__(self, vm, spin=0):
-        
-        # do the first step to get stats
-        vm.execute()
-        # get stats
-        sx, sy = vm.stats.sx, vm.stats.sy
-        self.r1 = sqrt(sx**2 + sy**2)
-        self.r2 = vm.outPort[4]
+    def __init__(self, r1, r2, spin=0):
+        self.r1 = r1
+        self.r2 = r2
         self.direction = 1 if self.r2 > self.r1 else -1
         self.spin = spin
         assert spin in (-1,0,1)
@@ -37,7 +31,7 @@ class transfer:
             # make the first pulse
 
             if self.spin == 0:
-                self.spin = 1 if sx * self.syInit - sy * self.sxInit < 0 else -1
+                self.spin = getSpin(self.sxInit, self.syInit, sx, sy)
 
             dV = self.spin * self.direction * dV1(self.r1, self.r2)
             dVx =  sy * dV / self.r1
@@ -64,3 +58,15 @@ class transfer:
             
         elif self.state == 3:
             pass
+        
+def predictPosition(sx, sy, r2):
+    """ Predict the coordinates after a Hohmann transfer from the current orbit to r2. """
+    
+    r1 = sqrt(sx**2 + sy**2)
+    return (-r2 * sx/r1, -r2 * sy/r1)
+
+def timeRequired(r1, r2):
+    return pi * sqrt((r1+r2)**3/(8*mu))
+    
+    
+    

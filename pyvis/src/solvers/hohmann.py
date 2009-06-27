@@ -11,13 +11,15 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
 
-    fin = open("../../../task/bin1.obf","rb")
-    data = fin.read()
+    with open("../../../task/bin1.obf","rb") as fin:
+        data = fin.read()
         
     vm = VM(data)
     vm.setScenario(1000.0 + int(sys.argv[1]))
 
-    trans = transfer(vm)
+    r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
+    r2 = vm.outPort[4]
+    trans = transfer(r1, r2)
 
     while vm.outPort[0] == 0.0:
         printStats(vm)
