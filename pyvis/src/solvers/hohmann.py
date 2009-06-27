@@ -19,7 +19,7 @@ class HohmannController:
     def step(self):
         self.trans.step(self.vm)
 
-def fuelBurnOrbit(r1, r2, fuel):
+def fuelBurnOrbits(r1, r2, fuel):
     """ Find the orbits r3, ..., rk such that going
         r1 -> r3 -> r1 -> r4 -> ... -> r1 -> r2 will
         burn as much fuel as possible. """
@@ -29,7 +29,7 @@ def fuelBurnOrbit(r1, r2, fuel):
     fuelBurn = lambda r3: 2 * ht.fuelRequired(r1, r3)
     
     rmin = r1
-    rmax = 15.6 * r1
+    rmax = 15.6 * r1    # this magic number is from wikipedia
     
     while fuelBurn(rmax) < fuel:
         yield rmax
@@ -42,7 +42,7 @@ def fuelBurnOrbit(r1, r2, fuel):
         else:
             rmax = r
     
-    yield rmin - 100    
+    yield rmin - 100    # leaving a 100m margin to account for discretization errors 
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
     r2 = vm.outPort[4]
     
-    for r in fuelBurnOrbit(r1, r2, vm.outPort[1]):
+    for r in fuelBurnOrbits(r1, r2, vm.outPort[1]):
         ht.transfer(r1, r).performTransfer(vm)
         ht.transfer(r, r1).performTransfer(vm)
 
