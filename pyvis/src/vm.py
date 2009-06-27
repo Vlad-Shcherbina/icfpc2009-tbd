@@ -150,11 +150,11 @@ class VM(object):
             print "Warning: (getSolution)"\
                 "score is nonpositive!!!!!!!!!!",self.stats.score
         
-        result = [struct.pack(">III",0xCAFEBABE,teamID,self.scenario)]
+        result = [struct.pack("<III",0xCAFEBABE,teamID,self.scenario)]
         for i,portWrites in enumerate(self.portWriteHistory):
-            result.append(struct.pack(">II",i,len(portWrites))) 
+            result.append(struct.pack("<II",i,len(portWrites))) 
             for addr,value in portWrites.items():
-                result.append(struct.pack(">Id",addr,value))
+                result.append(struct.pack("<Id",addr,value))
         
         return ''.join(result)
 
