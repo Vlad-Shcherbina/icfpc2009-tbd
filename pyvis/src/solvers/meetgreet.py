@@ -15,7 +15,8 @@ def printStats(vm):
     tR = sqrt(tx**2+ty**2)
     sa = atan2(sy,sx)
     ta = atan2(ty,tx)
-    print "Fuel: %f; Self: R: %s a: %s; Target R: %s a:%s" % (vm.outPort[1], sR, sa, tR, ta) 
+    dist = sqrt((sx-tx)**2+(sy-ty)**2)
+    print "Fuel: %f; Self: R: %s a: %s; Target R: %s a:%s; Dist: %s" % (vm.outPort[1], sR, sa, tR, ta, dist) 
 def selfCoords(vm):     # >>>>> move this into the vm class later
     return (vm.stats.sx, vm.stats.sy)
 
