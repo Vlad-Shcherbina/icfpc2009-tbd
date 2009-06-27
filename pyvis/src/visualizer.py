@@ -15,6 +15,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
 #from OpenGLContext.scenegraph.text import glutfont
+#from pyglet import image, font
 
 name = 'OrbitVIS'
 
@@ -38,8 +39,10 @@ class SolutionThread(Thread):
 	def run(self):
 		while not self.term:
 			self.vm.step()
-			self.solver.step(self.vm.getVMImpl())
-			time.sleep(0.000002+0.00000)
+			if self.solver:
+				self.solver.step(self.vm.getVMImpl())
+			
+			time.sleep(0.00000002+0.00000)
 			score = self.vm.readport(0)
 			type = self.vm.type+self.vm.config
 			if score != 0:
@@ -63,7 +66,7 @@ class SolutionThread(Thread):
 				
 				
 class Visualizer(Thread):
-	def __init__(self, vm, solver, keyHandler = None, mouseHandler = None):
+	def __init__(self, vm, solver, scaler = 0, keyHandler = None, mouseHandler = None):
 		Thread.__init__(self)
 		self.terminate = False
 		self.drawers = []
@@ -77,6 +80,9 @@ class Visualizer(Thread):
 		self.sx = 0
 		self.sy = 0
 		self.sradius = OrbitVM.EarthRadius/15
+
+		""" if scaling back is required """
+		self.scaler = scaler
 		
 		self.solutionThread = SolutionThread(vm, solver)
 		
@@ -222,7 +228,8 @@ class Visualizer(Thread):
 		for drawer in self.drawers:
 			drawer()
 
-		self.sx = self.sx*0.95
-		self.sy = self.sy*0.95
+		if self.scaler:
+			self.sx = self.sx*0.95
+			self.sy = self.sy*0.95
 
 		glutSwapBuffers()

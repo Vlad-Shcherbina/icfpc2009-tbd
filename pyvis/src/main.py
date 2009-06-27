@@ -25,7 +25,7 @@ if __name__ == '__main__':
         data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
         solver = transfer(vm.getVMImpl())
-    elif 1:
+    elif 0:
         fin = open("../../task/bin2.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.MeetnGreet, config)
