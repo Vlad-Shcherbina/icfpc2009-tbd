@@ -6,10 +6,12 @@
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	VorberVirtualMachine::Instance().LoadProgram(argv[1]);
-	VorberVirtualMachine::Instance().LoadInputText(argv[2]);
-	VorberVirtualMachine::Instance().Run();
-	VorberVirtualMachine::Instance().WriteOutput(argv[3]);
+	VorberVirtualMachine* vm = new VorberVirtualMachine();
+	vm->LoadProgram(argv[1]);
+	vm->LoadInputText(argv[2]);
+	vm->Run();
+	vm->WriteOutput(argv[3]);
+	delete vm;
 	return 0;
 }
 

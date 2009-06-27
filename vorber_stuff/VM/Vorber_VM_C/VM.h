@@ -21,11 +21,14 @@ struct VorberVirtualMachine
 
 	struct MemCell //decoded pair
 	{
+		friend class VorberVirtualMachine;
 		uint InstructionEncoded;
 		double Data;
-		MemCell() : InstructionEncoded(0), Data(0.0) {} ;
-		MemCell(InputElement input, bool even);
+		MemCell(VorberVirtualMachine* _owner = NULL) : InstructionEncoded(0), Data(0.0), owner(_owner) {} ;
+		MemCell(VorberVirtualMachine* owner, InputElement input, bool even);
 		void Construct(InputElement input, bool even);
+	private:
+		VorberVirtualMachine* owner; 
 
 	};
 
@@ -71,12 +74,14 @@ struct VorberVirtualMachine
 		D_INSTRUCTIONS Dop;
 		CMPZ_IMM imm;
 
-		Instruction(uint input);
+		Instruction(VorberVirtualMachine* machine, uint input);
 
 		void Execute();
 #ifdef LOGGING
 		std::string ToString();
 #endif
+	private:
+		VorberVirtualMachine* owner; 
 
 	};
 	
@@ -107,13 +112,14 @@ struct VorberVirtualMachine
 
 	void Run();
 
-	static VorberVirtualMachine& Instance();
 	//////////////////////////////////////////////////////////////////////////
 	FILE* logfile;
 	void MemoryDump(const char* filename);
 
-private:
+	//////////////////////////////////////////////////////////////////////////
 	VorberVirtualMachine();
 	~VorberVirtualMachine();
+
+private:
 };
 #endif

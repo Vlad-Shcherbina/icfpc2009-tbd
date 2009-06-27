@@ -14,7 +14,7 @@
 #define DD1MASK 0x0fffc000
 #define DD2MASK 0x00003fff
 
-VorberVirtualMachine::Instruction::Instruction( uint input )
+VorberVirtualMachine::Instruction::Instruction(VorberVirtualMachine* machine, uint input) : owner(machine) 
 {
 	//type:
 	//S instructions have bits 28..31 as zero
@@ -46,8 +46,8 @@ VorberVirtualMachine::Instruction::Instruction( uint input )
 void VorberVirtualMachine::Instruction::Execute()
 {
 	std::string logstring = "";
-	MemCell* Memory = VorberVirtualMachine::Instance().Memory;
-	uint CurrentAddress = VorberVirtualMachine::Instance().CurrentInstruction;
+	MemCell* Memory = owner->Memory;
+	uint CurrentAddress = owner->CurrentInstruction;
 	switch (type)
 	{
 	case S:
@@ -65,27 +65,27 @@ void VorberVirtualMachine::Instruction::Execute()
 					{
 					case LTZ:
 						{
-							VorberVirtualMachine::Instance().status = Memory[Addr1].Data < 0.0f;
+							owner->status = Memory[Addr1].Data < 0.0f;
 						}
 						break;
 					case LEZ:
 						{
-							VorberVirtualMachine::Instance().status = Memory[Addr1].Data <= 0.0f;
+							owner->status = Memory[Addr1].Data <= 0.0f;
 						}
 						break;
 					case EQZ:
 						{
-							VorberVirtualMachine::Instance().status = Memory[Addr1].Data == 0.0f;
+							owner->status = Memory[Addr1].Data == 0.0f;
 						}
 						break;
 					case GEZ:
 						{
-							VorberVirtualMachine::Instance().status = Memory[Addr1].Data >= 0.0f;
+							owner->status = Memory[Addr1].Data >= 0.0f;
 						}
 						break;
 					case GTZ:
 						{
-							VorberVirtualMachine::Instance().status = Memory[Addr1].Data > 0.0f;
+							owner->status = Memory[Addr1].Data > 0.0f;
 						}
 						break;
 					}
@@ -103,7 +103,7 @@ void VorberVirtualMachine::Instruction::Execute()
 				break;
 			case Input:
 				{
-					Memory[CurrentAddress].Data = VorberVirtualMachine::Instance().InputPorts[Addr1];
+					Memory[CurrentAddress].Data = owner->InputPorts[Addr1];
 				};
 				break;
 			}
@@ -137,12 +137,12 @@ void VorberVirtualMachine::Instruction::Execute()
 				break;
 			case Output:
 				{
-					VorberVirtualMachine::Instance().OutputPorts[Addr1] = Memory[Addr2].Data;
+					owner->OutputPorts[Addr1] = Memory[Addr2].Data;
 				};
 				break;
 			case Phi:
 				{
-					if (VorberVirtualMachine::Instance().status) Memory[CurrentAddress].Data = Memory[Addr1].Data;
+					if (owner->status) Memory[CurrentAddress].Data = Memory[Addr1].Data;
 					else Memory[CurrentAddress].Data = Memory[Addr2].Data;
 				};
 				break;
@@ -229,7 +229,7 @@ std::string VorberVirtualMachine::Instruction::ToString()
 					break;
 				case Phi:
 					result +="Phi ";
-					result += VorberVirtualMachine::Instance().status ? "status: 1 ": "status 0 ";
+					result += owner->status ? "status: 1 ": "status 0 ";
 					break;
 				case INVALID_D_INSTRUCTION:
 				default:
@@ -245,16 +245,13 @@ std::string VorberVirtualMachine::Instruction::ToString()
 	return result;
 }
 #endif
-VorberVirtualMachine& VorberVirtualMachine::Instance()
-{
-	static VorberVirtualMachine instance;
-	return instance;
-}
+
 
 VorberVirtualMachine::VorberVirtualMachine()
 {
 	for (uint i = 0; i < ADDRTOP; i++)
 	{
+		Memory[i].owner = this;
 		Memory[i].InstructionEncoded = 0;
 		Memory[i].Data = 0.0;
 	}
@@ -266,6 +263,7 @@ VorberVirtualMachine::VorberVirtualMachine()
 
 void VorberVirtualMachine::LoadProgram( const char* filename )
 {
+	fprintf(logfile, "VorberVirtualMachine::LoadProgram\n");
 	FILE* f = fopen(filename, "rb");
 	uint size = ADDRTOP*3;
 	uint buffer[ADDRTOP*3];
@@ -282,6 +280,7 @@ void VorberVirtualMachine::LoadProgram( const char* filename )
 
 void VorberVirtualMachine::LoadInputText( const char* filename )
 {
+	fprintf(logfile, "VorberVirtualMachine::LoadInputText\n");
 	InputPorts.clear();
 	FILE* F = fopen(filename, "r");
 	char buff[512];
@@ -297,6 +296,7 @@ void VorberVirtualMachine::LoadInputText( const char* filename )
 
 void VorberVirtualMachine::WriteOutput( const char* filename, bool clear )
 {
+	fprintf(logfile, "VorberVirtualMachine::WriteOutput\n");
 	FILE* F = fopen(filename, "w+");
 	char* buff[512];
 	for (std::map<uint, double>::iterator i = OutputPorts.begin(); i != OutputPorts.end(); i++)
@@ -317,7 +317,7 @@ void VorberVirtualMachine::Reset()
 
 void VorberVirtualMachine::Process()
 {
-	Instruction ins(Memory[CurrentInstruction].InstructionEncoded);
+	Instruction ins(this, Memory[CurrentInstruction].InstructionEncoded);
 	fprintf(logfile, "%04x: %s\n", CurrentInstruction, ins.ToString().c_str());
 	ins.Execute();
 	CurrentInstruction++;
@@ -325,6 +325,7 @@ void VorberVirtualMachine::Process()
 
 void VorberVirtualMachine::Run()
 {
+	fprintf(logfile, "VorberVirtualMachine::Run\n");
 	while (CurrentInstruction < ADDRTOP)
 	{
 		Process();
@@ -347,7 +348,7 @@ void VorberVirtualMachine::MemoryDump( const char* filename )
 	}
 	fclose(F);
 }
-VorberVirtualMachine::MemCell::MemCell( InputElement input, bool even )
+VorberVirtualMachine::MemCell::MemCell(VorberVirtualMachine* _owner, InputElement input, bool even ) : owner(_owner)
 {
 	Construct(input, even);
 }
