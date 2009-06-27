@@ -39,6 +39,7 @@ class VM(object):
         
         self.code = [0]*2**14
         self.mem = [0.0]*2**14
+        self.prevInPort = defaultdict(float)
         self.inPort = defaultdict(float)
         self.outPort = defaultdict(float)
           
@@ -51,7 +52,7 @@ class VM(object):
             self.mem[i] = value
 
         self.currentStep = 0
-        self.portWriteHistory = [{}]
+        self.controlCommands = []
         
         self.stats = O() # STATS FIELD IS DEPRECATED. USE STATE INSTEAD
         self.stats.hoh = O()
@@ -59,10 +60,7 @@ class VM(object):
     def writePort(self,addr,value):
         # Low-level method
         assert isinstance(value,float)
-        if self.inPort[addr] == value:
-            return
         self.inPort[addr] = value
-        self.portWriteHistory[-1][addr] = value
 
     def setScenario(self,number):
         assert self.currentStep == 0
@@ -73,11 +71,26 @@ class VM(object):
         self.state.scenario = float(number)
         
     def changeSpeed(self,dvx,dvy):
+        assert self.currentStep > 0
         self.writePort(2,float(dvx))
         self.writePort(3,float(dvy))
+
+    def saveControl(self,last=False):
+        controlCommand = []
+        for addr in sorted(set(self.inPort.keys())|set(self.prevInPort.keys())):
+            if self.inPort[addr] != self.prevInPort[addr]:
+                controlCommand.append(struct.pack("<Id",addr,self.inPort[addr]))
+        if last or len(controlCommand) > 0:
+            self.controlCommands.append(
+                struct.pack("<II",
+                            self.currentStep,
+                            len(controlCommand)) +
+                "".join(controlCommand) )
+        self.prevInPort = copy(self.inPort)
     
     def execute(self,debug=False):
         """Perform one step of simulation"""
+        self.saveControl()
         self.currentStep += 1
         i = 0
         if debug:
@@ -135,7 +148,6 @@ class VM(object):
             if debug:        
                 print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
                 print ';    status =',self.status
-        self.portWriteHistory.append({})
         self.changeSpeed(0,0)
         self.updateStats()
         self.updateState()
@@ -178,19 +190,12 @@ class VM(object):
             print "%04X %f"%(i,self.mem[i])
             
     def getSolution(self):
-        self.portWriteHistory[-1] = {}
         if self.state.score <= 0.0:
             print "Warning: (getSolution)"\
                 "score is nonpositive!!!!!!!!!!",self.state.score
-        
-        result = [struct.pack("<III",0xCAFEBABE,teamID,int(self.state.scenario))]
-        for i,portWrites in enumerate(self.portWriteHistory):
-            if len(portWrites) > 0 or i == len(self.portWriteHistory)-1:
-                result.append(struct.pack("<II",i,len(portWrites))) 
-                for addr,value in portWrites.items():
-                    result.append(struct.pack("<Id",addr,value))
-        
-        return ''.join(result)
+        self.saveControl(last=True)
+        return struct.pack("<III",0xCAFEBABE,teamID,int(self.state.scenario))+\
+            "".join(self.controlCommands)
 
 def instrToStr(instr):
     dOp = instr>>28

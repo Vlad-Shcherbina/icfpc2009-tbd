@@ -39,4 +39,8 @@ if __name__ == '__main__':
             vm.writePort(addr,value)
         
     assert numWrites == 0
+    
     print 'SCORE IS',vm.state.score
+
+    assert sol == vm.getSolution()
+    
