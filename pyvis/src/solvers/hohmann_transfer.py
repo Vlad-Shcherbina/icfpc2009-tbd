@@ -8,7 +8,6 @@ class transfer:
     def __init__(self, r1, r2, spin=0):
         self.r1 = r1
         self.r2 = r2
-        self.direction = 1 if self.r2 > self.r1 else -1
         self.spin = spin
         assert spin in (-1,0,1)
         if spin == 0:
@@ -35,7 +34,7 @@ class transfer:
             if self.spin == 0:
                 self.spin = getSpin(self.sxInit, self.syInit, sx, sy)
 
-            dV = self.spin * self.direction * dV1(self.r1, self.r2)
+            dV = self.spin * dV1(self.r1, self.r2)
             dVx =  sy * dV / self.r1
             dVy = -sx * dV / self.r1
             vm.changeSpeed(dVx, dVy)
@@ -52,7 +51,7 @@ class transfer:
             self.timeLeft -= 1
             
             if self.timeLeft == 0:
-                dV = self.spin * self.direction * dV2(self.r1, self.r2)
+                dV = self.spin * dV2(self.r1, self.r2)
                 dVx =  sy * dV / r
                 dVy = -sx * dV / r
                 vm.changeSpeed(dVx, dVy)
