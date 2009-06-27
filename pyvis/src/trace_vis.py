@@ -27,7 +27,8 @@ def circle(x,y,r,segments=22):
 standartColorScheme = (
     [(1,1,1),(0,1,0)]+
     [(1,0.5,0.5)]+
-    [(0.7,0.7,0.7)]*11+
+    [(0.7,0.7,0.7)]*9+
+    [(1,0,0)]*2+
     [(1,1,0)] # moon 
 )
 
@@ -146,7 +147,7 @@ def main():
                 for state in history.states 
                 for x,y in state.objects)
     scale = max(scale,1e7)
-    #scale += 1e3
+    #scale = 7e6
     
     
     glutMainLoop()
