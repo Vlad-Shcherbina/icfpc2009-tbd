@@ -1,8 +1,10 @@
 import psyco
 psyco.full()
 
-from threading import Thread	
 import sys
+import re
+
+from threading import Thread	
 from math import *
 from random import *
 import time
@@ -24,19 +26,59 @@ def circle(x,y,r,segments=22):
 		glVertex2f(x+r*cos(a),y+r*sin(a))
 	glEnd()
 				
+				
+				
+class SolutionThread(Thread):
+	def __init__(self, vm, solver):
+		Thread.__init__(self)
+		self.vm = vm
+		self.solver = solver
+		self.term = 0
+		
+	def run(self):
+		while not self.term:
+			self.vm.step()
+			self.solver.step(self.vm.getVMImpl())
+			time.sleep(0.000002)
+			score = self.vm.readport(0)
+			type = self.vm.type+self.vm.config
+			if score != 0:
+				self.solution = self.vm.getVMImpl().getSolution()
+				fname = "solutions/sol_%04d_%06d_%s"%(type, score,
+			                re.sub(r'[\s:]', "_", time.ctime()))
+				fout = open(fname,'w')
+				fout.write(self.solution)
+				print "stored into "+ fname
+				break
+		return
+
+	def terminate(self):
+		self.term = 1
+		return
+	
+	def _idle(self):
+		1
+		#
+					
+				
+				
 class Visualizer(Thread):
-	def __init__(self, orbitVM, keyHandler = None, mouseHandler = None):
+	def __init__(self, vm, solver, keyHandler = None, mouseHandler = None):
 		Thread.__init__(self)
 		self.terminate = False
 		self.drawers = []
 		
-		self.orbitVM = orbitVM
+		self.vm = vm
+		self.solver = solver
+		
 		self.keyHandler = keyHandler
 		self.mouseHandler = mouseHandler
 		
 		self.sx = 0
 		self.sy = 0
 		self.sradius = OrbitVM.EarthRadius/15
+		
+		self.solutionThread = SolutionThread(vm, solver)
 		
 	def registerDrawer(self,drawer):
 		self.drawers.append(drawer)
@@ -85,12 +127,6 @@ class Visualizer(Thread):
 		if self.sy < self.lastmax:
 			self.sy = self.lastmax
 
-#		for c in self.drawers:
-#			if maxsx < abs(c.sx):
-#				maxsx = abs(c.sx)
-#			if maxsy < abs(c.sy):
-#				maxsy = abs(c.sy)
-
 	def run(self):
 		glutInit([])
 		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
@@ -108,7 +144,11 @@ class Visualizer(Thread):
 		
 		glutMouseFunc(self._mouseHandler)
 
+		# start!
+		self.solutionThread.start()
+
 		glutMainLoop()
+		
 
 	def _mouseHandler(self,button,state,x,y):
 		if state != GLUT_DOWN:
@@ -124,7 +164,7 @@ class Visualizer(Thread):
 			if self.window:
 				glutDestroyWindow(self.window)
 				self.window = None
-			self.orbitVM.terminate()
+			self.vm.terminate()
 			return
 			#exit()
 		time.sleep(0.02)
@@ -155,39 +195,34 @@ class Visualizer(Thread):
 		self.earth()
 		
 		# self
-		sax = self.orbitVM.readport(0x2)
-		say = self.orbitVM.readport(0x3)
+		sax = self.vm.readport(0x2)
+		say = self.vm.readport(0x3)
 		#print "sat x=% 0f y=% 0f"%(sax, say) 
 		self.satellite(sax, say)
 		
-		print "t %d         sat2 x=% 0f y=% 0f"%(self.orbitVM.gettime(), sax, say)
+		#print "t %d         sat2 x=% 0f y=% 0f"%(self.vm.gettime(), sax, say)
 
-		if   self.orbitVM.gettype() == OrbitVM.Hohmann:
+		if   self.vm.gettype() == OrbitVM.Hohmann:
 			1
-		elif self.orbitVM.gettype() == OrbitVM.MeetnGreet or self.orbitVM.gettype() == OrbitVM.Eccentric:
-			sax = sax - self.orbitVM.readport(0x4)
-			say = say - self.orbitVM.readport(0x5)
+		elif self.vm.gettype() == OrbitVM.MeetnGreet or self.vm.gettype() == OrbitVM.Eccentric:
+			sax = sax - self.vm.readport(0x4)
+			say = say - self.vm.readport(0x5)
 			
 			self.satellite1(sax, say)
-		elif self.orbitVM.gettype() == OrbitVM.ClearSkies:
-			fx = sax - self.orbitVM.readport(0x4)
-			fy = say - self.orbitVM.readport(0x5)
-			ffuel = self.orbitVM.readport(0x6)
+		elif self.vm.gettype() == OrbitVM.ClearSkies:
+			fx = sax - self.vm.readport(0x4)
+			fy = say - self.vm.readport(0x5)
+			ffuel = self.vm.readport(0x6)
 			self.fuelstation(sax, say, ffuel)
 			for c in range(11):
-				sax = sax - self.orbitVM.readport(0x7+c*3)
-				say = say - self.orbitVM.readport(0x8+c*3)
+				sax = sax - self.vm.readport(0x7+c*3)
+				say = say - self.vm.readport(0x8+c*3)
 				self.satellite1(sax, say)
-			
-		
-		#self.rover()
-		#for o in self.tele.objects:
 
 		for drawer in self.drawers:
 			drawer()
 
 		self.sx = self.sx*0.95
 		self.sy = self.sy*0.95
-
 
 		glutSwapBuffers()

@@ -32,7 +32,7 @@ class OrbitVM():
 	def gettime(self):
 		return self.t
 	
-	def nextStep(self):
+	def step(self):
 		self.t = self.t+1
 		
 class DummyVM(OrbitVM):
@@ -47,6 +47,6 @@ class DummyVM(OrbitVM):
 	def writeport(self, port, val):
 		return 0
 	
-	def nextStep(self):
+	def step(self):
 		self.t = self.t+1
 	

@@ -9,6 +9,8 @@ from visualizer import Visualizer
 from orbitvm import OrbitVM, DummyVM
 from pyvmwrap import PyVM
 
+from hohmann_transfer import transfer
+
 
 if __name__ == '__main__':
 
@@ -18,23 +20,28 @@ if __name__ == '__main__':
     
     config = 2
 
-    if 0:
+    if 1:
         fin = open("../../task/bin1.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
+        vm.step()
+        solver = transfer(vm.getVMImpl())
     elif 0:
         fin = open("../../task/bin2.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.MeetnGreet, config)
-    elif 1:
+        solver = None
+    elif 0:
         fin = open("../../task/bin3.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.Eccentric, config)
+        solver = None
     elif 0:
         fin = open("../../task/bin4.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.ClearSkies, config)
+        solver = None
     
-    vis = Visualizer(vm)
+    vis = Visualizer(vm, solver)
     
     vis.run()

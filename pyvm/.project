@@ -3,6 +3,7 @@
 	<name>pyvm</name>
 	<comment></comment>
 	<projects>
+		<project>pyvis</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
