@@ -14,7 +14,6 @@ class OrbitVM():
 	def __init__(self, type, config):
 		self.type = type
 		self.config = config
-		self.writeport(0x3E80, self.type+self.config)
 		return
 	
 	def gettype(self):

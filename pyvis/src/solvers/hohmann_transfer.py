@@ -4,8 +4,6 @@ from orbital import mu, getSpin
 dV1 = lambda r1, r2: sqrt(mu/r1) * (sqrt(2*r2/(r1+r2)) - 1)
 dV2 = lambda r1, r2: sqrt(mu/r2) * (1 - sqrt(2*r1/(r1+r2)))
 
-
-
 class TransferController:
     def __init__(self, vm):
         self.vm = vm
