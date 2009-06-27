@@ -13,6 +13,7 @@ __all__ = [
     "teamID",
     "VM",
     "createScenario",
+    "State",
 ]
 
 teamID = 160
@@ -34,6 +35,14 @@ class State(object):
         )
     def haveMoon(self):
         return self.scenario >= 4001
+    
+    def __str__(self):
+        return "{t=%s %s}"%(self.time,self.objects)
+    
+    @staticmethod
+    def dists(s1,s2):
+        return list(sqrt((x1-x2)**2+(y1-y2)**2) 
+                   for (x1,y1),(x2,y2) in zip(s1.objects,s2.objects))
 
 class VM(object):
     def __init__(self,data):

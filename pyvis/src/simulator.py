@@ -17,6 +17,17 @@ def gravTo(x,y,mass):
     a = G*mass/(x*x+y*y)
     return a*dx,a*dy
 
+def stateToObjects(state):
+    result = []
+    for o in state.objects:
+        obj = Object()
+        obj.x = o[0]
+        obj.y = o[1]
+        obj.vx = 0
+        obj.vy = 0
+        result.append(obj)
+    return result
+
 def deriv(objects):
     result = []
     for obj in objects:
@@ -41,25 +52,42 @@ def advance(objs,dobjs,dt):
         obj.vy += d.vy*dt
 
 class Simulator(object):
-    def __init__(self,state,nextState):
-        self.objects = []
-        for o in state.objects:
-            obj = Object()
-            obj.x = o[0]
-            obj.y = o[1]
-            obj.vx = 0
-            obj.vy = 0
-            self.objects.append(obj)
+    def __init__(self,state,futureStates):
+        self.objects = stateToObjects(state)
         self.state = deepcopy(state)
         self.time = state.time
         
         #calcForces(self.objects)
+        nextState = futureStates[0]
         d = deriv(self.objects)
         for i,obj in enumerate(self.objects):
             obj.vx = nextState.objects[i][0]-0.5*d[i].vx-state.objects[i][0]
             obj.vy = nextState.objects[i][1]-0.5*d[i].vy-state.objects[i][1]
-        
+         
+        # it doesn't work as expected   
+        #self.estimateSpeed([state]+futureStates)
+
+    def estimateSpeed(self,states):
+        objs = deepcopy(self.objects)
+        for obj in objs:
+            obj.vx = 0
+            obj.vy = 0
+        for j in range(len(states)-1):
+            d = deriv(stateToObjects(states[j]))
+            for i in range(len(objs)):
+                objs[i].x += 0.5*d[i].vx
+                objs[i].y += 0.5*d[i].vy
+                objs[i].x += objs[i].vx
+                objs[i].y += objs[i].vy
+                objs[i].vx += d[i].vx
+                objs[i].vy += d[i].vy
+        j += 1
             
+        for i in range(len(objs)):
+            self.objects[i].vx = (states[j].objects[i][0]-objs[i].x)/j
+            self.objects[i].vy = (states[j].objects[i][1]-objs[i].y)/j
+        return
+        
     def simulate(self,dt):
         d = deriv(self.objects)
         #advance(self.objects,d,dt)
