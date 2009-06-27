@@ -18,19 +18,18 @@ if __name__ == '__main__':
     #vm = OrbitVM(OrbitVM.Eccentric, 1)
     #vm = DummyVM(OrbitVM.ClearSkies, 1)
     
-    config = 2
+    config = 1
 
     if 1:
         fin = open("../../task/bin1.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
-        vm.step()
         solver = transfer(vm.getVMImpl())
-    elif 0:
+    elif 1:
         fin = open("../../task/bin2.obf","rb")
         data = fin.read()
         vm = PyVM(data, OrbitVM.MeetnGreet, config)
-        solver = None
+        solver = transfer(vm.getVMImpl())
     elif 0:
         fin = open("../../task/bin3.obf","rb")
         data = fin.read()

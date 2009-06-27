@@ -39,14 +39,14 @@ class SolutionThread(Thread):
 		while not self.term:
 			self.vm.step()
 			self.solver.step(self.vm.getVMImpl())
-			time.sleep(0.000002)
+			time.sleep(0.000002+0.00000)
 			score = self.vm.readport(0)
 			type = self.vm.type+self.vm.config
 			if score != 0:
 				self.solution = self.vm.getVMImpl().getSolution()
-				fname = "solutions/sol_%04d_%06d_%s"%(type, score,
+				fname = "solutions/sol_%04d_%06d_%s.osf"%(type, score,
 			                re.sub(r'[\s:]', "_", time.ctime()))
-				fout = open(fname,'w')
+				fout = open(fname,'wb')
 				fout.write(self.solution)
 				print "stored into "+ fname
 				break

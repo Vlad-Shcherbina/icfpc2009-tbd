@@ -7,6 +7,10 @@ mu = 6.67428 * 6.0 * 10**13
 
 class transfer:
     def __init__(self, vm, spin=0):
+        
+        # do the first step to get stats
+        vm.execute()
+        # get stats
         sx, sy = vm.stats.sx, vm.stats.sy
         self.r1 = sqrt(sx**2 + sy**2)
         self.r2 = vm.outPort[4]
