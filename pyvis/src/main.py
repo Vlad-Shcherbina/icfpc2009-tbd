@@ -9,7 +9,7 @@ from visualizer import Visualizer
 from orbitvm import OrbitVM, DummyVM
 from pyvmwrap import PyVM
 
-from hohmann_transfer import transfer
+from solvers.hohmann_transfer import transfer
 
 
 if __name__ == '__main__':
