@@ -1,5 +1,6 @@
 import operator
 import math
+import re
 
 class asm(object):
     add = 'add'
@@ -26,8 +27,9 @@ class asm(object):
 
 
 class Operation(object):
-    def __init__(self, addr, op):
+    def __init__(self, addr, op, data):
         self.addr = addr
+        self.data = data
         opcode = op >> 28
         if opcode != 0:
             self.binary = True
