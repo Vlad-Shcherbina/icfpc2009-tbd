@@ -41,7 +41,6 @@ class transfer:
 
             #self.lastR = r
             self.timeLeft = int(round(timeRequired(self.r1, self.r2)))
-            print self.timeLeft
             self.state = 2
             return 0
 
@@ -62,6 +61,13 @@ class transfer:
             
         elif self.state == 3:
             return self.spin
+    
+    def performTransfer(self, vm):
+        completed = 0
+        while vm.outPort[0] == 0.0 and completed == 0:
+            completed = self.step(vm)
+            vm.execute()
+        return completed
         
     
 
@@ -75,7 +81,7 @@ def timeRequired(r1, r2):
     return pi * sqrt((r1+r2)**3/(8*mu))
 
 def fuelRequired(r1,r2):
-    return dV1(r1,r2) + dV2(r1,r2)
+    return abs(dV1(r1,r2)) + abs(dV2(r1,r2))
 
 def radiusFromTime(r1, t):
     cuberoot = lambda x: x**(1/3.0)

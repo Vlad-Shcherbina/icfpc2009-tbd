@@ -19,24 +19,30 @@ class HohmannController:
     def step(self):
         self.trans.step(self.vm)
 
-#def fuelForSteps(r1, r2, k):
-#    """ The amount of fuel needed to go from r1 to r2 in k equal jumps. """
-#    d = (r2 - r1) / k
-#    return sum(ht.fuelRequired(r1 + d*i, r1 + d*(i+1)) for i in xrange(0, k))
-
-def steppingTransfers(vm, r2):
-    fuel = vm.outPort[1]
-    r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
+def fuelBurnOrbit(r1, r2, fuel):
+    """ Find the orbits r3, ..., rk such that going
+        r1 -> r3 -> r1 -> r4 -> ... -> r1 -> r2 will
+        burn as much fuel as possible. """
     
-    k = 3
-        
-    d = (r2 - r1) / k
-    print r1, d, r1 + d
-    for i in xrange(0, k):
-        r = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
-        rnext = r1 + d * (i+1)
-        yield (r, rnext)
-            
+    fuel -= ht.fuelRequired(r1,r2)
+    
+    fuelBurn = lambda r3: 2 * ht.fuelRequired(r1, r3)
+    
+    rmin = r1
+    rmax = 15.6 * r1
+    
+    while fuelBurn(rmax) < fuel:
+        yield rmax
+        fuel -= fuelBurn(rmax)
+    
+    while rmax - rmin > 1:
+        r = (rmax + rmin) / 2
+        if fuelBurn(r) < fuel:
+            rmin = r
+        else:
+            rmax = r
+    
+    yield rmin - 100    
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2
@@ -53,25 +59,14 @@ if __name__ == '__main__':
     r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
     r2 = vm.outPort[4]
     
-    #trans = ht.transfer(r1, r2)
+    for r in fuelBurnOrbit(r1, r2, vm.outPort[1]):
+        ht.transfer(r1, r).performTransfer(vm)
+        ht.transfer(r, r1).performTransfer(vm)
 
-    #while vm.outPort[0] == 0.0:
-    #    printStats(vm)
-    #    trans.step(vm)
-    #    vm.execute()
+    ht.transfer(r1, r2).performTransfer(vm)
+    printStats(vm)
     
-    print "A journey from %f to %f" % (r1, r2)
-    for (rstart, rend) in steppingTransfers(vm, r2):
-        print "Jump", (rstart, rend)
-        trans = ht.transfer(rstart, rend)
-        completed = 0
-        while completed == 0:
-            printStats(vm)
-            completed = trans.step(vm)
-            vm.execute()
-            
     while vm.outPort[0] == 0.0:
-            #printStats(vm)
             vm.execute()
         
 
