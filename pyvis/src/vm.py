@@ -12,6 +12,7 @@ __all__ = [
     "instrToStr",
     "teamID",
     "VM",
+    "createScenario",
 ]
 
 teamID = 160
@@ -22,14 +23,17 @@ class O(object):
 class State(object):
     __slots__ = (
         'scenario',
+        'time',
         'score',
         'fuel',
         'objects', # list of coordiante pairs. First pair - our sat, second - fuel station (if present)
         'radius', # for hohmann problem
         'fuel2', # on fuel station
         'collected', # list of bools
-        'moon', # pair of coordinates. Moon is not an ordinary object (it has mass)
+        'moon', # moon alse listed in 'objects' last
         )
+    def haveMoon(self):
+        return self.scenario >= 4001
 
 class VM(object):
     def __init__(self,data):
@@ -161,6 +165,7 @@ class VM(object):
         self.updateState()
         
     def updateState(self):
+        self.state.time = self.currentStep
         self.state.score = self.outPort[0]
         self.state.fuel = self.outPort[1]
         self.state.objects = []
@@ -180,6 +185,9 @@ class VM(object):
                 self.state.objects.append((x+self.outPort[3*i+7],y+self.outPort[3*i+8]))
                 self.state.collected.append(self.outPort[3*i+7] == 1.0)
             self.state.moon = (x+self.outPort[0x64],y+self.outPort[0x65])
+            self.state.objects.append(self.state.moon)
+        else:
+            assert False,'unknown scenario'
 
     def updateStats(self):
         self.stats.score = self.outPort[0]
@@ -206,6 +214,17 @@ class VM(object):
         self.saveControl(last=True)
         return struct.pack("<III",0xCAFEBABE,teamID,int(self.state.scenario))+\
             "".join(self.controlCommands)
+
+def createScenario(fileName,scenario):
+    "returns vm"
+    with open(fileName,"rb") as fin:
+        data = fin.read()
+    vm = VM(data)
+    
+    vm.setScenario(scenario)
+    vm.execute()
+    
+    return vm
 
 def instrToStr(instr):
     dOp = instr>>28
