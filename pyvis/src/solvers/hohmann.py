@@ -27,9 +27,12 @@ if __name__ == '__main__':
         
     vm = VM(data)
     vm.setScenario(1000.0 + int(sys.argv[1]))
+    
+    vm.execute()    # please don't remove this line again
 
     r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
     r2 = vm.outPort[4]
+    
     trans = transfer(r1, r2)
 
     while vm.outPort[0] == 0.0:

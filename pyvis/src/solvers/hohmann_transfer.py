@@ -4,19 +4,6 @@ from orbital import mu, getSpin
 dV1 = lambda r1, r2: sqrt(mu/r1) * (sqrt(2*r2/(r1+r2)) - 1)
 dV2 = lambda r1, r2: sqrt(mu/r2) * (1 - sqrt(2*r1/(r1+r2)))
 
-class TransferController:
-    def __init__(self, vm):
-        self.vm = vm
-        vm.execute()
-        r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
-        r2 = vm.outPort[4]
-        self.trans = transfer(r1, r2)
-        
-    def step(self):
-        self.trans.step(self.vm)
-
-
-
 class transfer:
     def __init__(self, r1, r2, spin=0):
         self.r1 = r1
