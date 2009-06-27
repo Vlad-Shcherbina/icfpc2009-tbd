@@ -1,7 +1,8 @@
 import psyco
 psyco.full()
 
-from copy import copy
+from copy import copy,deepcopy
+
 import struct
 from operator import *
 from math import *
@@ -60,6 +61,9 @@ class VM(object):
         
         self.stats = O() # STATS FIELD IS DEPRECATED. USE STATE INSTEAD
         self.stats.hoh = O()
+    
+    def clone(self):
+        return deepcopy(self)
         
     def writePort(self,addr,value):
         # Low-level method
@@ -160,21 +164,22 @@ class VM(object):
         self.state.score = self.outPort[0]
         self.state.fuel = self.outPort[1]
         self.state.objects = []
-        self.state.objects.append((self.outPort[2],self.outPort[3]))
+        x,y = (-self.outPort[2],-self.outPort[3])
+        self.state.objects.append((x,y))
         if self.state.scenario >= 1001 and self.state.scenario <= 1004:
             self.state.radius = self.outPort[4]
         elif self.state.scenario >= 2001 and self.state.scenario <= 2004 or\
             self.state.scenario >= 3001 and self.state.scenario <= 3004:
-            self.state.objects.append((self.outPort[4],self.outPort[5]))
+            self.state.objects.append((x+self.outPort[4],y+self.outPort[5]))
         elif self.state.scenario >= 4001 and self.state.scenario <= 4004:
             # fuel station
-            self.state.objects.append((self.outPort[4],self.outPort[5]))
+            self.state.objects.append((x+self.outPort[4],y+self.outPort[5]))
             self.state.fuel2 = self.outPort[6]
             self.state.collected = []
             for i in range(12):
-                self.state.objects.append((self.outPort[3*i+7],self.outPort[3*i+8]))
+                self.state.objects.append((x+self.outPort[3*i+7],y+self.outPort[3*i+8]))
                 self.state.collected.append(self.outPort[3*i+7] == 1.0)
-            self.state.moon = (self.outPort[0x64],self.outPort[0x65])
+            self.state.moon = (x+self.outPort[0x64],y+self.outPort[0x65])
 
     def updateStats(self):
         self.stats.score = self.outPort[0]
