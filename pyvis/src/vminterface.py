@@ -12,6 +12,7 @@ __all__ = [
     "teamID",
     "createScenario",
     "getSolution",
+    "parseSolution",
 ]
 
 teamID = 160
@@ -178,13 +179,10 @@ def getSolution(scenario,totalTime,controls):
             
     return "".join(res)
 
-def loadSolution(filename):
-    "returns tuple (scenario, solution)"
+def parseSolution(sol):
+    "returns tuple (scenario, solution, numSteps)"
     
-    with open(filename,"rb") as fin:
-        sol = fin.read()
-    
-    (signature, tid, scenario) = struct.unpack_from('<III')
+    (signature, tid, scenario) = struct.unpack_from('<III',sol,0)
     assert signature == 0xCAFEBABE
     assert tid == teamID
     
@@ -211,6 +209,8 @@ def loadSolution(filename):
         print 'Solution file corrupted. '
         print 'Probably you ignored nonpositive score warning when saving this solution'
     
-    controls = dict((k,v) for k,v in controls.items())
+    controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
+    
+    return (scenario,controls,timeStamp)
     
         
