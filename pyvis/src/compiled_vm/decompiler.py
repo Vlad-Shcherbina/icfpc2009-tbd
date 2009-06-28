@@ -209,9 +209,10 @@ def create_compilation_items(ops):
     for op in ops: op.updateLinks(ops)
     for op in ops: op.mark_reachable()
     reachable = []
+    unreachable = []
     for op in ops:
-        if op.reachable: reachable.append(op)
-        else: print 'Unreachable:', op 
+        (reachable if op.reachable else unreachable).append(op)
+    if unreachable: print 'Unreachable count:', len(unreachable) 
     ops = reachable
     for op in ops: op.determine_type()
     

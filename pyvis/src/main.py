@@ -23,13 +23,13 @@ if __name__ == '__main__':
     
     config = 2
 
-    if 1:
+    if 0:
         with open("../../task/bin1.obf","rb") as fin:
             data = fin.read()
         vm = VM(data)
         vm.setScenario(Hohmann[config-1])
         solver = HohmannController(vm)
-    elif 0:
+    elif 1:
         with open("../../task/bin2.obf","rb") as fin:
             data = fin.read()
         vm = VM(data)

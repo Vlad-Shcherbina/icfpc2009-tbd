@@ -8,6 +8,24 @@ from copy import copy, deepcopy
 import struct
 from math import *
 
+
+# this is the best place to disable stdout buffering
+class _Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def writelines(self, data):
+        self.stream.writelines(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=_Unbuffered(sys.stdout)
+
+
 __all__ = [
     "teamID",
     "createScenario",
