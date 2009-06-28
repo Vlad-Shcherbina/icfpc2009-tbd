@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import sys
 from math import sqrt, atan2, pi
 import time

@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import sys
 from math import sqrt
 import itertools
@@ -18,7 +20,7 @@ class HohmannController:
     def __init__(self, vm):
         self.vm = vm
         vm.execute()
-        self.trans = transfer(vm.state.r, vm.state.radius)
+        self.trans = ht.transfer(vm.state.r, vm.state.radius)
         
     def step(self):
         self.trans.step(self.vm)

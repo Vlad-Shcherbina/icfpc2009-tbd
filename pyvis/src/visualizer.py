@@ -5,17 +5,18 @@ psyco.full()
 
 import sys
 import re
-
-from threading import Thread	
+import time
 from math import *
 from random import *
-import time
-
-from vm import Hohmann, MeetGreet, Eccentric, ClearSkies, EarthRadius
+from copy import deepcopy
+from threading import Thread	
 
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
+
+from vm import Hohmann, MeetGreet, Eccentric, ClearSkies, EarthRadius
+from simulator import Simulator
 
 global glPixel
 glPixel = 1
@@ -106,6 +107,59 @@ class StatsDrawer:
 				 vis.centerx-vis.windowW/2*glPixel,
 				 vis.centery+(vis.windowW/2-20)*glPixel, 100, 100)
 		#glPopMatrix();
+
+vSum = lambda v1, v2: (v1[0]+v2[0], v1[1]+v2[1])
+vDiff = lambda v1, v2: (v1[0]-v2[0], v1[1]-v2[1])
+
+class RadiusDrawer:
+	def __init__(self):
+		self.prevpos = None
+		self.history = []
+		pass
+	
+	def __call__(self, vis):
+		vm = vis.vm
+
+		if self.prevpos is None:
+			self.prevpos = vm.state.objects[0]
+			pass
+		curpos = vm.state.objects[0]
+		nextpos = vSum(curpos, vDiff(curpos, self.prevpos))
+		self.prevpos = curpos
+		
+		glPushMatrix()
+		#glTranslatef(*, 0)
+		glColor3f(0.5,0.5,0.5)
+		circle(0, 0, vm.state.r)
+
+		glBegin(GL_LINE_LOOP)
+		glVertex2f(*curpos)
+		glVertex2f(*nextpos)
+		glEnd()	
+		glPopMatrix()
+		
+		#history = History(vm,lookAhead=10)
+		#simulator = Simulator(history.states[0],history.states[1:2])
+
+		if len(vm.history) < 3:
+			return
+		
+		simulator = Simulator(vm.history[0], vm.history[1:2])
+		simStates = []
+		maxErr = 0
+		for i in range(10):
+		    simStates.append(deepcopy(simulator.state))
+		    #simulator.simulate(1)
+		    simulator.rungeKutta(1000)
+		glColor3f(0.9,0.5,0.5)
+		for i in reversed(range(len(simStates[0].objects))):
+			glBegin(GL_LINE_STRIP)
+			for state in simStates:
+			    x,y = state.objects[i]
+			    glVertex2f(x,y)
+			glEnd()
+        
+		
 		
 				
 class SolutionThread(Thread):
@@ -115,19 +169,26 @@ class SolutionThread(Thread):
 		self.solver = solver
 		self.term = 0
 		
+		
 	def run(self):
+		vm = self.vm
+		vm.history = []
 		while not self.term:
-			
-			self.vm.execute()
+			vm.execute()
 			
 			if self.solver:
 				self.solver.step()
+			
+			vm.history.append(deepcopy(vm.state))
+			if (len(vm.history) > 5):
+				vm.history = vm.history[1:]
 
 			time.sleep(0.0000002+0.0000)
-			score = self.vm.state.score
-			type = self.vm.scenario
+			score = vm.state.score
+			type = vm.scenario
 			if score != 0:
-				self.solution = self.vm.getSolution()
+				break
+				self.solution = vm.getSolution()
 				fname = "solutions/sol_%04d_%06d_%s.osf"%(type, score,
 			                re.sub(r'[\s:]', "_", time.ctime()))
 				with open(fname,'wb') as fout:
