@@ -16,6 +16,10 @@ from orbitvm import OrbitVM
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
+
+global glPixel
+glPixel = 1
+
 #from OpenGLContext import testingcontext
 #BaseContext, MainFunction = testingcontext.getInteractive()
 #from OpenGLContext.arrays import array
@@ -23,7 +27,6 @@ from OpenGL.GL import *
 #from pyglet import image, font
 
 name = 'OrbitVIS'
-
 
 def circle(x,y,r,segments=22):
 	glBegin(GL_LINE_LOOP)
@@ -46,12 +49,12 @@ def drawText( value, x,y,  windowHeight, windowWidth, step = 18 ):
 	#glPushMatrix();
 	#glLoadIdentity();
 	glRasterPos2i(x, y);
-	lines = 0
+	lines = 1
 ##	import pdb
 ##	pdb.set_trace()
 	for character in value:
 		if character == '\n':
-			glRasterPos2i(x, y+(lines*18))
+			glRasterPos2i(x, y-(lines*step*glPixel))
 			lines = lines+1
 		else:
 			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(character));
@@ -63,19 +66,38 @@ def drawText( value, x,y,  windowHeight, windowWidth, step = 18 ):
 	
 	#glMatrixMode(GL_MODELVIEW);
 
+factor = 100
+
+keyMapping = { 
+    "w": (-1, 0),
+    "s": (1, 0),
+    "a": (0, -1),
+    "d": (0, 1),
+    }
+
+def keyboardHandler(vis, key, x, y):
+    vm = vis.vm.getVMImpl()
+    if keyMapping.has_key(key):
+    	print keyMapping[key]
+        vm.changeSpeed(keyMapping[key][0]*factor, keyMapping[key][1]*factor)
+
+
 
 class StatsDrawer:
-	def __init__(self, vm):
-		self.vm = vm
-	def __call__(self):
-		vm = self.vm
+	def __init__(self):
+		pass
+	
+	def __call__(self, vis):
+		vm = vis.vm.getVMImpl()
 		#glPushMatrix();
-		glMatrixMode(GL_PROJECTION);
-		glOrtho(0.0, 100, 0.0, 100, -1.0, 1.0)
-		glLoadIdentity();
+		#glMatrixMode(GL_PROJECTION);
+		#glOrtho(0.0, 100, 0.0, 100, -1.0, 1.0)
+		#glLoadIdentity();
 		glColor3f(1,1,1)
 		drawText("Fuel:%d\nsx: %09f\nsy:%09f"%(vm.stats.fuel, vm.stats.sx, vm.stats.sy),
 				 0, 0, 100, 100)
+		drawText("step:%d"%(vm.currentStep),
+				 vis.centerx-vis.windowW/2*glPixel, vis.centery+(vis.windowW/2-20)*glPixel, 100, 100)
 		#glPopMatrix();
 		
 				
@@ -92,7 +114,7 @@ class SolutionThread(Thread):
 			if self.solver:
 				self.solver.step()
 
-			time.sleep(0.00000002+0.00010)
+			time.sleep(0.0000002+0.0000)
 			score = self.vm.readport(0)
 			type = self.vm.type+self.vm.config
 			if score != 0:
@@ -129,6 +151,14 @@ class Visualizer(Thread):
 		
 		self.sx = 0
 		self.sy = 0
+		self.centerx = 0
+		self.centery = 0
+		
+		self.mousex = 0
+		self.mousey = 0
+		
+		self.zoomstate = 0
+		self.manualzoom = 0
 		self.sradius = OrbitVM.EarthRadius/15
 
 		""" if scaling back is required """
@@ -180,6 +210,9 @@ class Visualizer(Thread):
 
 	def relocate(self, x, y):
 
+		if self.manualzoom:
+			return
+		   
 		if self.lastmax < abs(x)*1.1:
 			self.lastmax = abs(x)*1.1
 		if self.lastmax < abs(y)*1.1:
@@ -193,7 +226,9 @@ class Visualizer(Thread):
 	def run(self):
 		glutInit([])
 		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-		glutInitWindowSize(700,700)
+		
+		self.windowW = self.windowH = 700
+		glutInitWindowSize(self.windowW,self.windowH)
 
 		self.window = glutCreateWindow(name)
 #		self.font = glutfont.GLUTFontProvider.get( FontStyle( family=["Arial","SANS"]))
@@ -203,24 +238,50 @@ class Visualizer(Thread):
 		glutDisplayFunc(self.display)
 		glutIdleFunc(self._idle)
 		if (self.keyHandler):
-			glutKeyboardFunc(self.keyHandler)
+			glutKeyboardFunc(self._keyHandler)
 		
 		glutMouseFunc(self._mouseHandler)
+		glutMotionFunc(self._motionHandler)
 
 		# start!
 		self.solutionThread.start()
 
 		glutMainLoop()
 		
-
+	def _keyHandler(self, key, x, y):
+		if self.keyHandler is not None:
+			self.keyHandler(self,key,x,y)
+	
+	
 	def _mouseHandler(self,button,state,x,y):
-		if state != GLUT_DOWN:
-			return
-#		x = (float(x)/800-0.5)*self.initData.dx
-#		y = ((600-float(y))/600-0.5)*self.initData.dy
+		if button == 0 and state == GLUT_DOWN:
+			self.zoomstate = -1
+		if button == 0 and state == GLUT_UP:
+			self.zoomstate = 0
+
+		if button == 2 and state == GLUT_DOWN:
+			self.zoomstate = 1
+		if button == 2 and state == GLUT_UP:
+			self.zoomstate = 0
+
+		if button == 1 and state == GLUT_DOWN:
+			self.mousex = x
+			self.mousey = y
+		
+		self.manualzoom = 1
+	
 		if self.mouseHandler is not None:
 			self.mouseHandler(button,x,y)
-		
+	
+	def _motionHandler(self, x, y):
+		if self.zoomstate == 0:
+			self.centerx = self.centerx - (x-self.mousex)*glPixel
+			self.centery = self.centery + (y-self.mousey)*glPixel
+			print "%d %d %d %d"%(x, y, self.mousex, self.mousey)
+			self.mousex = x
+			self.mousey = y
+		pass
+	
 	def _idle(self):
 		# because it is not a message handler
 		if self.terminate:
@@ -242,10 +303,13 @@ class Visualizer(Thread):
 		self.lastmax = 0
 		self.relocate(OrbitVM.EarthRadius, OrbitVM.EarthRadius)
 		
-		glOrtho(-self.sx,
-				self.sx,
-				-self.sx,
-				self.sx, -10,10)
+		glOrtho(-self.sx+self.centerx,
+				self.sx+self.centerx,
+				-self.sx+self.centery,
+				self.sx+self.centery, -10,10)
+		
+		global glPixel
+		glPixel = int(self.sx/self.windowW*2)
 		
 		glMatrixMode(GL_MODELVIEW)
 
@@ -287,10 +351,15 @@ class Visualizer(Thread):
 			self.moon(sanx, sany)
 
 		for drawer in self.drawers:
-			drawer()
+			drawer(self)
 
 		if self.scaler:
 			self.sx = self.sx*0.95
 			self.sy = self.sy*0.95
+		
+		if self.zoomstate:
+			self.sx = self.sx + self.sx*0.1 * self.zoomstate
+			self.centerx = self.mousex
+			self.centery = self.mousey
 
 		glutSwapBuffers()

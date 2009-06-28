@@ -11,7 +11,7 @@ from visualizer import *
 from orbitvm import OrbitVM, DummyVM
 from pyvmwrap import PyVM
 from vm import VM
-from solvers.hohmann_transfer import TransferController
+from solvers.hohmann import HohmannController
 from solvers.meetgreet import MeetGreetController
 
 if __name__ == '__main__':
@@ -20,13 +20,13 @@ if __name__ == '__main__':
     #vm = OrbitVM(OrbitVM.Eccentric, 1)
     #vm = DummyVM(OrbitVM.ClearSkies, 1)
     
-    config = 3
+    config = 2
 
-    if 1:
+    if 0:
         with open("../../task/bin1.obf","rb") as fin:
             data = fin.read()
         vm = PyVM(data, OrbitVM.Hohmann, config)
-        solver = TransferController(vm.getVMImpl())
+        solver = HohmannController(vm.getVMImpl())
     elif 0:
         with open("../../task/bin2.obf","rb") as fin:
             data = fin.read()
@@ -37,14 +37,17 @@ if __name__ == '__main__':
             data = fin.read()
         vm = PyVM(data, OrbitVM.Eccentric, config)
         solver = MeetGreetController(vm.getVMImpl())
-    elif 0:
+    elif 1:
         with open("../../task/bin4.obf","rb") as fin:
             data = fin.read()
         vm = PyVM(data, OrbitVM.ClearSkies, config)
         solver = None
     
-    vis = Visualizer(vm, solver, scaler = 0)
     
-    #vis.registerDrawer(StatsDrawer(vm.getVMImpl()))
+    kh = keyboardHandler
+    #kh = None
+    vis = Visualizer(vm, solver, scaler = 0, keyHandler = kh)
+
+    vis.registerDrawer(StatsDrawer())
     
     vis.run()
