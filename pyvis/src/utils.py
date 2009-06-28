@@ -5,4 +5,4 @@ earthMass = 6e24
 mu = G*earthMass
 
 def periodByRadius(r):
-    return 2*pi*sqrt(mu/(r*r*r))
+    return 2*pi*sqrt((r*r*r)/mu)

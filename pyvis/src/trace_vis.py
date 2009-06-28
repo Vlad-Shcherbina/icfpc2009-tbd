@@ -8,9 +8,15 @@ import sys
 from copy import deepcopy
 from math import *
 
-from vm import *
-from history import History
-from simulator import Simulator
+
+from utils import *
+
+from vminterface import createScenario,getSolution
+
+from compiled_vm import CompiledVMConstructor
+from python_vm import PythonVMConstructor 
+vmctr = CompiledVMConstructor
+
 
 name = 'pyglut template'
 
@@ -70,7 +76,7 @@ def display():
     
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    glScalef(float(winH)/winW,1,1)
+    glScalef(float(winH)/(winW+0.1),1,1)
     
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
@@ -79,16 +85,7 @@ def display():
     glColor3f(0,0.3,0.6)
     circle(0,0,6.357e06)
 
-    glPointSize(3)
-    for state in decimateList(history.states,rate=0.01):
-        drawState(state)
-        
-#    glPointSize(1)
-#    i = 0
-#    for state in decimateList(simStates):
-#        drawState(state)
-#        i += 1
-    drawStates(decimateList(simStates))
+    drawStates(decimateList(states))
 
     glutSwapBuffers()
     glutPostRedisplay()
@@ -105,10 +102,12 @@ def resize(w,h):
     winW,winH = w,h
     
 #############################3
+
+
+
 def main():
     global winW,winH
-    global history,vm,scale
-    global simStates
+    global states,scale
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
     glutInitWindowSize(winW,winH)
@@ -120,35 +119,35 @@ def main():
     glutIdleFunc(idle)
     
     assert len(sys.argv) == 3,"specify obf and scenario"
-    vm = createScenario(sys.argv[1],int(sys.argv[2]))
-    history = History(vm,lookAhead=10000)
+    vm = createScenario(vmctr,sys.argv[1],int(sys.argv[2]))
+    print vm.state.fuel
     
-    simulator = Simulator(history.states[0],history.states[1:2])
-    simStates = []
-    maxErr = 0
-    for i in range(5000):
-        s1 = simulator.state
-        s2 = history.getStateByTime(s1.time)
-        if s2 is not None:
-            print '(r-k):   ',s1
-            print '(exact):',s2
-            errs = State.dists(s1,s2)
-            print 'errors =',errs
-            err = max(errs)
-            print 'error =',err
-            maxErr = max(maxErr,err)
-            print
-        simStates.append(deepcopy(simulator.state))
-        #simulator.simulate(1)
-        simulator.rungeKutta(100)
-    print 'Maximum error over simulation:',maxErr
+
+    r1 = abs(complex(*vm.state.objects[0]))
+    r2 = abs(complex(*vm.state.objects[1]))
+    print 'radii',r1,r2
     
+
+    
+    dv1 = sqrt(mu/r1)*(sqrt(2*r2/(r1+r2))-1)
+    dv2 = sqrt(mu/r2)*(1-sqrt(2*r1/(r1+r2)))
+    hohTime = periodByRadius(0.5*(r1+r2))/2
+    print 'hoh time',hohTime
+    
+    controls = {}
+    controls[1] = (0,-dv1)
+    controls[int(hohTime)] = (0,dv2)
+
+    states = []
+    for i in range(7000):
+        states.append(deepcopy(vm.state))
+        vm.executeSteps(1,controls)
+    
+        
     scale = max(sqrt(x*x+y*y) 
-                for state in history.states 
+                for state in states 
                 for x,y in state.objects)
-    scale = max(scale,1e7)
-    #scale = 7e6
-    
+    #scale = max(scale,1e7)
     
     glutMainLoop()
 
