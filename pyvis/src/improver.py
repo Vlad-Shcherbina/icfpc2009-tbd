@@ -3,6 +3,9 @@ from math import *
 from numpy import array,dot,transpose
 from numpy.linalg import solve
 
+class ImproverFailure(Exception):
+    pass
+
 def leastSquares(a,c):
     a = array(a)
     c = array(c)
@@ -18,14 +21,14 @@ def traceCoords(vm,control,index,t1,t2):
     t0 = vm.state.time
     vm = vm.clone()
     result = []
-    for i in range(t0,t2):
-        assert vm.state.time == i
-        if i in control:
-            vm.changeSpeed(*control[i]) 
-        if i >= t1:
-            for q in range(2):
-                result.append(vm.state.objects[index])
-        vm.execute()
+    steps = vm.executeSteps(t1-t0,control)
+    if steps < t1-t0:
+        raise ImproverFailure()
+    for i in range(t1,t2):
+        result.append(vm.state.objects[index])
+        steps = vm.executeSteps(1,control)
+        if steps != 1:
+            raise ImproverFailure()
     return result
 
 def updateControls(controls,t,dvx,dvy):
@@ -41,22 +44,21 @@ def calcBadness(vm,index,controls,t1,t2):
         badness = max(badness,b)
     return badness
 
-def improveMeetAndGreet(vm,index,controls,freePoints,t1,t2):
+def improveMeetAndGreet(vm,index,controls,freePoints,t1,t2,delta=0.0001):
+    t0 = vm.state.time
+    assert t0<t1 and t1<t2
+    
     targetTrace = traceCoords(vm,controls,index,t1,t2)
     baseTrace = traceCoords(vm,controls,0,t1,t2)
     
     c = []
-    badness = 0
     for p1,p2 in zip(baseTrace,targetTrace): 
         c.append(p2[0]-p1[0])                
         c.append(p2[1]-p1[1])
-        b = sqrt(c[-1]**2+c[-2]**2)
-        badness = max(badness,b)
-    print 'badness',badness
     
     a = []
     
-    deltas = [(0.0001,0),(0,0.0001)]
+    deltas = [(delta,0),(0,delta)]
     
     for t in freePoints:
         for d in deltas:
@@ -77,4 +79,26 @@ def improveMeetAndGreet(vm,index,controls,freePoints,t1,t2):
         for f,(dx,dy) in zip(row,deltas):
             updateControls(result,t,f*dx,f*dy)
     return result
-        
+
+def tryImprove(vm,index,controls,freePoints,t1,t2):
+    badness = calcBadness(vm,index,controls,t1,t2)
+    while badness > 950.0:
+        attempts = []
+        for delta in [0.0001,0.001,0.01,0.1]:
+            try:
+                delta = 0.001
+                c = improveMeetAndGreet(vm,index,controls,freePoints,t1,t2,delta)
+                newBadness = calcBadness(vm,index,c,t1,t2)
+                attempts.append((newBadness,c))
+            except ImproverFailure:
+                pass
+        if len(attempts) == 0:
+            raise ImproverFailure("all improvement attempts crashed")
+        attempts.sort()
+        if attempts[0][0] >= badness:
+            raise ImproverFailure("no actual improvements")
+        print 'improvement from',badness,'to',attempts[0]
+        badness = attempts[0][0]
+        controls = c
+    print "Succesfully improved to badness",badness
+    return controls

@@ -1,12 +1,27 @@
+import psyco
+psyco.full()
+
 from copy import deepcopy
 import sys
 
-from vm import *
+from vminterface import createScenario,getSolution
+
+from compiled_vm import CompiledVMConstructor
+from python_vm import PythonVMConstructor 
+
+vmctr = CompiledVMConstructor
+#vmctr = PythonVMConstructor
+
 from improver import *
+
+#def compare(vm):
 
 if __name__ == '__main__':
     
-    vm = createScenario("../../task/bin2.obf",2002)
+    scenario = 2002
+    vmP = createScenario(vmctr,"../../task/bin2.obf",scenario)
+    
+    vm = vmP
     vm0 = vm.clone()
     
     controls = {}
@@ -16,9 +31,14 @@ if __name__ == '__main__':
     expectedTime = 84624
     variationPoints = [50000,expectedTime]
     
-    for i in range(1):
-        controls = improveMeetAndGreet(vm,1,controls,variationPoints,
-                                       expectedTime,expectedTime+900)
+    print 'initial badness',calcBadness(vm,1,controls,
+                                      expectedTime,expectedTime+900)
+    
+    controls = improveMeetAndGreet(vm,1,controls,variationPoints,
+                                   expectedTime,expectedTime+900)
+
+#    controls = tryImprove(vm,1,controls,variationPoints,
+#                          expectedTime,expectedTime+900)
         
     print 'final badness',calcBadness(vm,1,controls,
                                       expectedTime,expectedTime+900)
@@ -27,14 +47,10 @@ if __name__ == '__main__':
     
     vm = vm0
     print 'checking improved version'
-    while vm.state.score == 0.0 and vm.state.time < 100000:
-        #print vm.state.time
-        if vm.state.time in controls:
-            vm.changeSpeed(*controls[vm.state.time])
-        vm.execute()
-        
+    steps = vm.executeSteps(3000000,controls)
+    
     print 'SCORE',vm.state.score
     with open('improved_sol','wb') as fout:
-        fout.write(vm.getSolution())
+        fout.write(getSolution(scenario,vm.state.time,controls))
         
     
