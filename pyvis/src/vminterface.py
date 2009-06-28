@@ -75,9 +75,11 @@ class VMInterface(object):
                 t += 1
                 idle += 1
             stepsMade += self.run(idle)
-            if t == endT:
+            if t == endT or self.state.score != 0.0:
                 return stepsMade
             stepsMade += self.run(1,*controls[t])
+            if self.state.score != 0.0:
+                return stepsMade
             t += 1
 
     def executeStepsOld(self, steps, controls):
@@ -190,18 +192,22 @@ def parseSolution(sol):
 
     ax, ay = (0, 0)
     i = 12
+    t = 0
     while i < len(sol):
         timeStamp,numWrites = struct.unpack_from('<II', sol, i)
+        while t<timeStamp:
+            if (ax,ay)!=(0.0,0.0):
+                controls[t] = (ax,ay)
+            t += 1
         i += 8
-        controls[timeStamp] = [0.0,0.0]
         for j in range(numWrites):
             addr,value = struct.unpack_from("<Id", sol, i)
             i += 12
             if timeStamp>0:
                 if addr == 2:
-                    controls[timeStamp][0] = value
+                    ax = value
                 elif addr == 3:
-                    controls[timeStamp][1] = value
+                    ay = value
             else:
                 assert addr == 16000 and value == float(scenario)
         
@@ -209,7 +215,7 @@ def parseSolution(sol):
         print 'Solution file corrupted. '
         print 'Probably you ignored nonpositive score warning when saving this solution'
     
-    controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
+#    controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
     
     return (scenario,controls,timeStamp)
     
