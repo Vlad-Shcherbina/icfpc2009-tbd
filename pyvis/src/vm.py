@@ -181,7 +181,7 @@ class VM(object):
     def executeSteps(self,steps,controls):
         for i in range(steps):
             if self.state.time in controls:
-                self.changeSpeed(controls[self.state.time])
+                self.changeSpeed(*controls[self.state.time])
             # else reset automatically to 0,0 as done in this shitty execute
             self.execute()
         
