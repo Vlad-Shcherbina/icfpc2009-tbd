@@ -18,8 +18,14 @@ controls = {...}
 while vm.state.score == 0.0:
 	vm.executeSteps(1,controls)
 	
+или даже так:
+controls = {...}
+stepsRunned = vm.executeSteps(4000000,controls)
+при этом общее количество шагов будет на единицу больше, т.к. начинали с первого
+totalTime = vm.state.time
+	
 with open("sol","wb") as fout:
-	fout.write(vm.getSolution())
+	fout.write(getSolution(scenario,totalTime,controls))
 
 #ну и конечно всегда доступен state с кучей полей
 #но если вам потребуется его сохранить себе, пишите
