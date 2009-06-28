@@ -16,8 +16,8 @@ class transfer:
             self.state = 1
 
     def step(self, vm):
-        sx, sy = vm.stats.sx, vm.stats.sy
-        r = sqrt(sx**2 + sy**2)
+        sx, sy = vm.state.objects[0]
+        r = vm.state.r
 
         assert (0 <= self.state <= 3)
 
@@ -35,8 +35,8 @@ class transfer:
                 self.spin = getSpin(self.sxInit, self.syInit, sx, sy)
 
             dV = self.spin * dV1(self.r1, self.r2)
-            dVx =  sy * dV / self.r1
-            dVy = -sx * dV / self.r1
+            dVx = -sy * dV / self.r1
+            dVy = sx * dV / self.r1
             vm.changeSpeed(dVx, dVy)
 
             #self.lastR = r
@@ -51,8 +51,8 @@ class transfer:
             
             if self.timeLeft == 0:
                 dV = self.spin * dV2(self.r1, self.r2)
-                dVx =  sy * dV / r
-                dVy = -sx * dV / r
+                dVx = -sy * dV / r
+                dVy = sx * dV / r
                 vm.changeSpeed(dVx, dVy)
                 self.state = 3
                 return self.spin
@@ -64,7 +64,7 @@ class transfer:
     
     def performTransfer(self, vm):
         completed = 0
-        while vm.outPort[0] == 0.0 and completed == 0:
+        while vm.state.score == 0.0 and completed == 0:
             completed = self.step(vm)
             vm.execute()
         return completed

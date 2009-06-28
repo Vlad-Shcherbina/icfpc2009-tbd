@@ -5,8 +5,7 @@ import hohmann_transfer as ht
 import itertools
 
 def printStats(vm):
-    sx, sy = vm.stats.sx, vm.stats.sy
-    print "Fuel: %f; Rcurrent: %f; Rdest: %f" % (vm.outPort[1],  sqrt(sx**2 + sy**2), vm.outPort[4])
+    print "Fuel: %f; Rcurrent: %f; Rdest: %f" % (vm.state.fuel,  vm.state.r, vm.state.radius)
 
 ####################################################
 # HohmannController contains an outdated version of the algorithm
@@ -18,9 +17,7 @@ class HohmannController:
     def __init__(self, vm):
         self.vm = vm
         vm.execute()
-        r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
-        r2 = vm.outPort[4]
-        self.trans = transfer(r1, r2)
+        self.trans = transfer(vm.state.r, vm.state.radius)
         
     def step(self):
         self.trans.step(self.vm)
@@ -62,19 +59,18 @@ if __name__ == '__main__':
     
     vm.execute()    # please don't remove this line again
 
-    r1 = sqrt(vm.stats.sx**2 + vm.stats.sy**2)
-    r2 = vm.outPort[4]
+    r1 = vm.state.r
+    r2 = vm.state.radius
     
-    for r in fuelBurnOrbits(r1, r2, vm.outPort[1]):
+    for r in fuelBurnOrbits(r1, r2, vm.state.fuel):
         ht.transfer(r1, r).performTransfer(vm)
         ht.transfer(r, r1).performTransfer(vm)
 
     ht.transfer(r1, r2).performTransfer(vm)
     printStats(vm)
     
-    while vm.outPort[0] == 0.0:
+    while vm.state.score == 0.0:
             vm.execute()
-        
 
-    print vm.outPort[0]
-
+    print vm.state.score
+    

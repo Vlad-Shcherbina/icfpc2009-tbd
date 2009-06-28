@@ -35,11 +35,12 @@ class State(object):
         'time',
         'score',
         'fuel',
+        'r', # distance to the center of the earth
         'objects', # list of coordiante pairs. First pair - our sat, second - fuel station (if present)
-        'radius', # for hohmann problem
+        'radius', # for hohmann problem (target orbit radius)
         'fuel2', # on fuel station
         'collected', # list of bools
-        'moon', # moon alse listed in 'objects' last
+        'moon', # moon also listed in 'objects' last
         )
     def haveMoon(self):
         return self.scenario >= 4001
@@ -183,6 +184,7 @@ class VM(object):
         self.state.objects = []
         x,y = (-self.outPort[2],-self.outPort[3])
         self.state.objects.append((x,y))
+        self.state.r = sqrt(x**2 + y**2)
         if self.state.scenario >= 1001 and self.state.scenario <= 1004:
             self.state.radius = self.outPort[4]
         elif self.state.scenario >= 2001 and self.state.scenario <= 2004 or\
