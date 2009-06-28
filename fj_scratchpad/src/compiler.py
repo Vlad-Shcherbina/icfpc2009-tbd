@@ -3,10 +3,11 @@ from distutils.core import setup, Extension
 from ctypes import *
 
 def build():
+    compiler_args = [] # 
     ext = Extension(
                    'compiled_vm', 
                    ['compiled_vm.c'],
-                   extra_compile_args = [],
+                   extra_compile_args = compiler_args,
                    depends = ['compiled_vm_declarations.inc', 'compiled_vm_statements.inc'])
  
     setup(name = 'compiled vm module',
@@ -26,6 +27,7 @@ class vmwrapper():
         self.output_type = c_double * vm_desc.outputsize
         self.output = self.output_type()
         
+        self.rawrun.restype = c_int
         self.rawrun.argtypes = [c_int, c_double, c_double, c_double, 
                                 self.memory_type, self.output_type]
         

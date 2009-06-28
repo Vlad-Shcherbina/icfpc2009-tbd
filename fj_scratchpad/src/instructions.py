@@ -83,8 +83,12 @@ class Operation(object):
             elif op == asm.sqrt:
                 memory[self.addr] = math.sqrt(memory[self.r1]) 
             elif op == asm.copy:
+                print self
+                print self.r1
                 memory[self.addr] = memory[self.r1]  
             elif op == asm.read:
                 memory[self.addr] = input[self.r1]
             else:
                 raise Exception('WTF')
+            
+

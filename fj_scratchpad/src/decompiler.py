@@ -45,7 +45,6 @@ class OperationEx(Operation):
             self.updateLink(ops[self.r1])
         else:
             assert False, 'WTF?!'
-        # save 'uses' as args
     
     def __str__(self):
         s = Operation.__str__(self)
@@ -74,19 +73,17 @@ class OperationEx(Operation):
         if self.op in (asm.out, asm.noop, asm.cmpz): 
             # cmpz's value is resolved using getcmpzvalue
             self.constant = True
-            self.inline_constant = True
-# TODO: fix back
-#            repr = '%0.0f' % self.data
-#            if float(repr) == self.data and len(repr) < 19:
-#                self.inline_constant = True
-#            else:
-#                self.declared_constant = True
+            repr = '%0.0f' % self.data
+            if float(repr) == self.data and len(repr) < 19:
+                self.inline_constant = True
+            else:
+                self.declared_constant = True
             
-#        if len(self.usedby) == 1 and self.op != asm.read:
-#            # except for divisor
-#            user = self.usedby[0]
-#            if user.addr >= self.addr and (user.op != asm.div or user.r2 != self.addr): 
-#                self.temporary = True
+        if len(self.usedby) == 1 and self.op != asm.read:
+            # except for divisor
+            user = self.usedby[0]
+            if user.addr >= self.addr and (user.op != asm.div or user.r2 != self.addr): 
+                self.temporary = True
         
         
         if not self.temporary and not self.constant:
@@ -145,9 +142,8 @@ class OperationEx(Operation):
         return "c" + str(self.addr)
     
     def getvalue(self):
-        if self.variable: return self.getvarname()
-#        if self.inline_constant: return "%0.1f" % self.data TODO: fix 
-        if self.inline_constant: return self.data 
+        if self.variable: return 'memory[{0}]'.format(self.getvarname())
+        if self.inline_constant: return repr(self.data) 
         if self.declared_constant: return self.getconstname() 
         if self.temporary: return self.getexpression() 
         raise "WTF!"
@@ -160,10 +156,12 @@ class OperationEx(Operation):
     def getconstdeclaration(self):
         assert self.declared_constant
         iname = 'long_' + str(self.addr)
-        ivalue = "".join('%02X' % ord(c) for c in struct.pack('d', self.data))  
+        ivalue = "".join('%02X' % ord(c) for c in reversed(struct.pack('d', self.data)))  
         s1 = 'const unsigned long long {0} = 0x{1}L;'.format(iname, ivalue)
         s2 = 'const double {0} = *(double*)&{1};'.format(
             self.getconstname(), iname)
+#        s1 = ''
+#        s2 = 'const double {0} = {1};'.format(self.getconstname(), repr(self.data))
         s2 = s2.ljust(45)
         s2 += '// ' + str(self.data)
         return s1 + '\n' + s2 + '\n'
@@ -202,10 +200,12 @@ def create_compilation_items(ops):
                     op for op in ops if op.variable)]
     statements = [op.getstatement() for op in ops if op.statement]
     data = [op.data for op in ops if op.variable]
+    datamap = [op.addr for op in ops if op.variable]
     
     return ('\n'.join(declared_constants + var_indices) + '\n', 
             '\n'.join(statements) + '\n',
-            data) 
+            data,
+            datamap) 
 
 def decode_src(buf):
     l = len(buf)
@@ -222,29 +222,24 @@ def decode_src(buf):
     
 
 vm_description = namedtuple('vm_description', 
-    'declarations statements memorysize outputsize memory')
+    'declarations statements memorysize outputsize memory memorymap')
  
 def process_file(filename):
     src = open(filename, 'rb').read()
     ops = decode_src(src)
-    declarations, statements, data = create_compilation_items(ops)
+    declarations, statements, data, datamap = create_compilation_items(ops)
     print data
-    vm = vm_description(declarations, statements, len(data), MAX_OUT_PORTS, tuple(data)) 
+    vm = vm_description(declarations, statements, len(data), MAX_OUT_PORTS, 
+                        tuple(data), tuple(datamap))
+    
+#    memory = list(data)
+#    input = {2:0.0, 3:0.0, 16000:1001.0}
+#    output = {}
+#    status = [0]
+#    for op in ops:
+#        op.execute(memory, input, output, status)
+#    print memory
+#    print output
+  
     return vm
 
-#    outfile = open('disassembly%d' % n, 'w')    
-#    
-#    outfile.write('Data:\n')
-#    for i, d in enumerate(data):
-#        outfile.write('%4d: %s\n' % (i, '--' if d == 0 else '%0.5f' % d))
-#    
-#    outfile.write('\n\nCode:\n')
-#    for i, d in enumerate(ops):
-#        outfile.write('%4d: %s\n' % (i, str(d)))
-#    
-#    outfile.close()
-
-#if __name__ == '__main__':
-#    for i in range(1):
-#        filename = '../../task/bin%d.obf' % n
-#        process_file(i + 1)

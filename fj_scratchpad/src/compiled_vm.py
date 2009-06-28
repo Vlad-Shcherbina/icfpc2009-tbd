@@ -1,5 +1,6 @@
 import decompiler
 import compiler
+import time
 
 class CompiledVM(object):
     def __init__(self, parent, scenario, memory = None):
@@ -12,7 +13,11 @@ class CompiledVM(object):
         self.scenario = scenario
     
     def run(self, steps, ax, ay):
-        self.vmwrapper.run(steps, ax, ay, self.scenario, self.memory)
+        return self.vmwrapper.run(steps, ax, ay, self.scenario, self.memory)
+    
+    def print_memory_map(self):
+        for i, d in zip(self.vm_desc.memorymap, self.memory):
+            print "%04d: %f" % (i, d)
         
             
 
@@ -26,16 +31,17 @@ class CompiledVMConstructor(object):
         
     def newvm(self, scenario):
         return CompiledVM(self, scenario)
-          
-        
- 
-
 
 
 
 if __name__ == '__main__':
-    constructor = CompiledVMConstructor('../../task/bin1.obf')
-    vm = constructor.newvm(1001.0)
-    print vm.run(1, 0, 0)
+    constructor = CompiledVMConstructor('../../task/bin4.obf')
+    vm = constructor.newvm(4001.0)
+    
+    clock = time.clock()   
+    print vm.run(3000000, 0, 0)
+    print time.clock() - clock
     print list(vm.vmwrapper.output)
     print list(vm.memory)
+    print
+    vm.print_memory_map()
