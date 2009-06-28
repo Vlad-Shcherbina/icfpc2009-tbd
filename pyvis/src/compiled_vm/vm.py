@@ -4,6 +4,7 @@ import time
 import os.path
 import inspect
 from contextlib import contextmanager
+from copy import copy, deepcopy
 
 class CompiledVM(object):
     def __init__(self, parent, scenario, memory = None):
@@ -17,6 +18,9 @@ class CompiledVM(object):
     
     def run(self, steps, ax, ay):
         return self.vmwrapper.run(steps, ax, ay, self.scenario, self.memory)
+
+    def getoutput(self):
+        return self.vmwrapper.output
     
     def reset(self):
         self.memory[:] = self.vm_desc.memory
@@ -30,8 +34,11 @@ class CompiledVM(object):
         return CompiledVM(self.parent, self.scenario, newmem)
     
     def __deepcopy__(self, d):
-        return self.__copy__() # because that's how deep it gets!
-         
+        return self.__copy__() # because that's how deep it ever gets!
+
+    def clone(self):
+        return copy(self)
+        
 @contextmanager
 def changedir(dir = None, file = None):
     if file:
