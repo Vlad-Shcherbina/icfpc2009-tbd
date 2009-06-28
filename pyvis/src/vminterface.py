@@ -3,7 +3,7 @@ from __future__ import with_statement
 import psyco
 psyco.full()
 
-from copy import copy,deepcopy
+from copy import copy, deepcopy
 
 import struct
 from math import *
@@ -162,5 +162,39 @@ def getSolution(scenario,totalTime,controls):
             
     return "".join(res)
 
+def loadSolution(filename):
+    "returns tuple (scenario, solution)"
+    
+    with open(filename,"rb") as fin:
+        sol = fin.read()
+    
+    (signature, tid, scenario) = struct.unpack_from('<III')
+    assert signature == 0xCAFEBABE
+    assert tid == teamID
+    
+    controls = {}
 
+    ax, ay = (0, 0)
+    i = 12
+    while i < len(sol):
+        timeStamp,numWrites = struct.unpack_from('<II', sol, i)
+        i += 8
+        controls[timeStamp] = [0.0,0.0]
+        for j in range(numWrites):
+            addr,value = struct.unpack_from("<Id", sol, i)
+            i += 12
+            if timeStamp>0:
+                if addr == 2:
+                    controls[timeStamp][0] = value
+                elif addr == 3:
+                    controls[timeStamp][1] = value
+            else:
+                assert addr == 16000 and value == float(scenario)
+        
+    if numWrites != 0:
+        print 'Solution file corrupted. '
+        print 'Probably you ignored nonpositive score warning when saving this solution'
+    
+    controls = dict((k,v) for k,v in controls.items())
+    
         

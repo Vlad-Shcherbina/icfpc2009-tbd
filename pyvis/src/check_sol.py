@@ -5,24 +5,30 @@ from pprint import pprint
 
 from vm import teamID,createScenario,getSolution
 
+from compiled_vm import CompiledVMConstructor
+from python_vm import PythonVMConstructor 
+
 
 if __name__ == '__main__':
-    assert len(sys.argv) == 3, "specify .obf file and solution file"
+    ctors = {
+            'compiled': CompiledVMConstructor, 
+            'python': PythonVMConstructor,
+            }
+    assert len(sys.argv) == 4, "specify vm ({0}), .obf file and solution file".format(
+        ", ".join(ctors.keys()))
     
-    with open(sys.argv[2],"rb") as fin:
+    with open(sys.argv[3],"rb") as fin:
         sol = fin.read()
     
     (signature,tid,scenario) = struct.unpack('<III',sol[:12])
     assert signature == 0xCAFEBABE
     assert tid == teamID
     
-    print 'scenario',scenario
+    print 'scenario', scenario
     
-    vm = createScenario(sys.argv[1],scenario)
+    vm = createScenario(ctors[sys.argv[1]], sys.argv[2], scenario)
     assert vm.state.time == 1 # because 0 is initializing iteration
     
-    vmClone = vm.clone()
-
     controls = {}
     
     i = 12
@@ -35,28 +41,25 @@ if __name__ == '__main__':
             i += 12
             if timeStamp>0:
                 if addr == 2:
-                    controls[timeStamp][0] += value
+                    controls[timeStamp][0] = value
                 elif addr == 3:
-                    controls[timeStamp][1] += value
+                    controls[timeStamp][1] = value
             else:
-                assert addr == 0x3E80 and value == float(scenario)
+                assert addr == 16000 and value == float(scenario)
         
     if numWrites != 0:
         print 'Solution file corrupted. '
         print 'Probably you ignored nonpositive score warning when saving this solution'
     
-    controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
+    controls = dict((k,v) for k,v in controls.items())
     print 'controls =\\'
     pprint(controls)
 
     # because we already were on step 1 after createScenario
-    vm.executeSteps(timeStamp-1,controls)
+    steps = vm.executeSteps(timeStamp-1, controls) + 1
     
+    if steps != timeStamp:
+        print "The machine aborted prematurely after {0} steps!".format(steps) 
     print 'SCORE IS',vm.state.score
-
-    checkedSol = getSolution(scenario,timeStamp,controls)
-    with open('checked_sol','wb') as fout:
-        fout.write(checkedSol)
-        
-    assert sol == checkedSol
+    
     
