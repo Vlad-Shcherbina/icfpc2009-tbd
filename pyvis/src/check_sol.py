@@ -3,15 +3,11 @@ import sys
 import struct
 from pprint import pprint
 
-from vm import VM,teamID
+from vm import teamID,createScenario
 
 
 if __name__ == '__main__':
     assert len(sys.argv) == 3, "specify .obf file and solution file"
-    
-    with open(sys.argv[1],"rb") as fin:
-        data = fin.read()
-    vm = VM(data)
     
     with open(sys.argv[2],"rb") as fin:
         sol = fin.read()
@@ -20,44 +16,41 @@ if __name__ == '__main__':
     assert signature == 0xCAFEBABE
     assert tid == teamID
     
-    vm.setScenario(scenario)
     print 'scenario',scenario
     
-    step = 0
-
-    i = 12
+    vm = createScenario(sys.argv[1],scenario)
+    assert vm.state.time == 1 # because 0 is initializing iteration
     
+    vmClone = vm.clone()
+
     controls = {}
     
+    i = 12
     while i < len(sol):
         timeStamp,numWrites = struct.unpack('<II',sol[i:i+8])
         i += 8
-        while step < timeStamp:
-            assert step == 0 or vm.state.score == 0.0
-            vm.execute()
-            step += 1
-        print timeStamp,numWrites
         controls[timeStamp] = [0.0,0.0]
         for j in range(numWrites):
             addr,value = struct.unpack("<Id",sol[i:i+12])
             i += 12
-            print 'write port',addr,value
             if timeStamp>0:
                 if addr == 2:
                     controls[timeStamp][0] += value
                 elif addr == 3:
                     controls[timeStamp][1] += value
-            vm.writePort(addr,value) 
-            # bug here if you keep same nonzero speed for two steps!
+            else:
+                assert addr == 0x3E80 and value == float(scenario)
         
     if numWrites != 0:
         print 'Solution file corrupted. '
-        print 'Probably you igonred nonpositive score warning when saving this solution'
+        print 'Probably you ignored nonpositive score warning when saving this solution'
     
     controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
     print 'controls =\\'
     pprint(controls)
-    
+
+    # because we already were on step 1 after createScenario
+    vm.executeSteps(timeStamp-1,controls)
     
     print 'SCORE IS',vm.state.score
 
