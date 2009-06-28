@@ -145,6 +145,7 @@ class VMInterface(object):
             self.state.objects.append((x+output[4],y+output[5]))
             self.state.fuel2 = output[6]
             self.state.collected = []
+            assert len(self.state.objects)==2
             for i in range(12):
                 self.state.objects.append((x+output[3*i+7],y+output[3*i+8]))
                 self.state.collected.append(output[3*i+7] == 1.0)
@@ -152,6 +153,7 @@ class VMInterface(object):
             self.state.objects.append(self.state.moon)
         else:
             assert False,'unknown scenario'
+        self.state.cobjects = [complex(*o) for o in self.state.objects]
 
     def getStats(self):
         assert False,"Stop using this deprecated shit! use 'state' instead"
