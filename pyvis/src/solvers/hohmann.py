@@ -8,6 +8,12 @@ def printStats(vm):
     sx, sy = vm.stats.sx, vm.stats.sy
     print "Fuel: %f; Rcurrent: %f; Rdest: %f" % (vm.outPort[1],  sqrt(sx**2 + sy**2), vm.outPort[4])
 
+####################################################
+# HohmannController contains an outdated version of the algorithm
+# (run this module directly to get the new one).
+# I'm not fixing this until there's a more clear understanding of how
+# the solvers interact with the rest of the system.
+####################################################
 class HohmannController:
     def __init__(self, vm):
         self.vm = vm
@@ -31,7 +37,7 @@ def fuelBurnOrbits(r1, r2, fuel):
     rmin = r1
     rmax = 15.6 * r1    # this magic number is from wikipedia
     
-    while fuelBurn(rmax) < fuel:
+    while fuelBurn(rmax) < fuel - 10:
         yield rmax
         fuel -= fuelBurn(rmax)
     
