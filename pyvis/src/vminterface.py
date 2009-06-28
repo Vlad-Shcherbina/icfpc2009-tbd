@@ -31,7 +31,15 @@ __all__ = [
     "createScenario",
     "getSolution",
     "parseSolution",
+    "vmconstructors",
 ]
+
+from compiled_vm import CompiledVMConstructor
+from python_vm import PythonVMConstructor 
+
+vmconstructors = {
+    'compiled': CompiledVMConstructor, 
+    'python': PythonVMConstructor,}
 
 teamID = 160
 
@@ -63,72 +71,46 @@ class State(object):
 class VMInterface(object):
     def __init__(self, llvm):
         self.llvm = llvm
-        self.currentStep = 0
-        self.ax = 0.0
-        self.ay = 0.0
+        self.time = 0
         self.state = State()
         
     def clone(self):
         return deepcopy(self)
         
-
-    def setAcceleration(self, ax, ay):
-        self.ax, self.ay = ax, ay
-        
     def run(self, steps = 1, ax = 0.0, ay = 0.0):
         """ low-level interface, won't play nice with executeSteps"""
-        self.ax = ax
-        self.ay = ay
         steps = self.llvm.run(steps, ax, ay)
-        self.currentStep += steps
+        self.time += steps
         self.updateState()
         return steps
 
-    def executeSteps(self, steps, controls):
-        stepsMade = 0
-        t = self.state.time
-        endT = t+steps
+    def executeSteps(self, steps, controls = {}):
+        t = self.time
+        base = t
+        endT = t + steps
+        llvm = self.llvm
         while True:
-            idle = 0
             while t < endT and t not in controls:
                 t += 1
-                idle += 1
-            stepsMade += self.run(idle)
-            if t == endT or self.state.score != 0.0:
-                return stepsMade
-            stepsMade += self.run(1,*controls[t])
-            if self.state.score != 0.0:
-                return stepsMade
+            dt = t - base
+            if dt:
+                rdt = llvm.run(dt)
+                base += rdt
+                if rdt != dt: break
+            if t == endT: break
+            rdt = llvm.run(1, *controls[t])
+            if rdt != 1: break
+            base += 1
             t += 1
-
-    def executeStepsOld(self, steps, controls):
-        if self.state.score != 0.0: return 0
-        time = self.currentStep
-        prevTime = time
-        for time in xrange(time, time + steps):
-            ctrl = controls.get(time)
-            if ctrl is not None:
-                # execute up to this point
-                dt = time - prevTime
-                if dt > 0:
-                    executed = self.llvm.run(dt, self.ax, self.ay)
-                    prevTime += executed
-                    if executed != dt:
-                        break
-                self.ax, self.ay = ctrl
-        executed = prevTime - self.currentStep
-        dt = steps - executed
-        if dt > 0:
-            executed = self.llvm.run(dt, self.ax, self.ay)
-            prevTime += executed
-        executed = prevTime - self.currentStep
-        self.currentStep = prevTime
+        dt = base - self.time
+        self.time = base
         self.updateState()
-        return executed
+        return dt
+
         
     def updateState(self):
         output = self.llvm.getoutput()
-        self.state.time = self.currentStep
+        self.state.time = self.time
         self.state.score = output[0]
         self.state.fuel = output[1]
         self.state.objects = []
@@ -168,6 +150,8 @@ class VMInterface(object):
 
 def createScenario(vmconstructor,fileName, scenario):
     "returns vm"
+    if isinstance(vmconstructor, basestring):
+        vmconstructor = vmconstructors[vmconstructor]
     ctor = vmconstructor(fileName)
     vm = ctor.newvm(scenario)
     vmi = VMInterface(vm)

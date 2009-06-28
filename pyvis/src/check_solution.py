@@ -3,14 +3,7 @@ import sys
 import struct
 from pprint import pprint
 
-from vminterface import teamID,createScenario,getSolution,parseSolution
-
-from compiled_vm import CompiledVMConstructor
-from python_vm import PythonVMConstructor 
-ctors = {
-        'compiled': CompiledVMConstructor, 
-        'python': PythonVMConstructor,
-        }
+from vminterface import *
 
 def check_solution(vmtype, vmfile, solutionfile):
     with open(solutionfile, "rb") as fin:
@@ -23,7 +16,7 @@ def check_solution(vmtype, vmfile, solutionfile):
     print 'controls =\\'
     pprint(controls)
     
-    vm = createScenario(ctors[vmtype], vmfile, scenario)
+    vm = createScenario(vmconstructors[vmtype], vmfile, scenario)
     assert vm.state.time == 1
 
     # because we already were on step 1 after createScenario
@@ -36,7 +29,7 @@ def check_solution(vmtype, vmfile, solutionfile):
     
 if __name__ == '__main__':
     assert len(sys.argv) == 4, "specify vm ({0}), .obf file and solution file".format(
-        ", ".join(ctors.keys()))
+        ", ".join(vmconstructors.keys()))
     check_solution(sys.argv[1], sys.argv[2], sys.argv[3])
     
     
