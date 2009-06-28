@@ -26,10 +26,11 @@ if __name__ == '__main__':
 
     i = 12
     
-    while i<len(sol):
+    while i < len(sol):
         timeStamp,numWrites = struct.unpack('<II',sol[i:i+8])
         i += 8
         while step < timeStamp:
+            assert step == 0 or vm.state.score == 0.0
             vm.execute()
             step += 1
         print timeStamp,numWrites
@@ -37,7 +38,8 @@ if __name__ == '__main__':
             addr,value = struct.unpack("<Id",sol[i:i+12])
             i += 12
             print 'write port',addr,value
-            vm.writePort(addr,value)
+            vm.writePort(addr,value) 
+            # bug here if you keep same nonzero speed for two steps!
         
     assert numWrites == 0
     
