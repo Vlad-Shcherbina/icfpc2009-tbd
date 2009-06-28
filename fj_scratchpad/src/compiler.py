@@ -1,9 +1,17 @@
 import distutils
 from distutils.core import setup, Extension
 from ctypes import *
+import platform
+import shutil
 
-def build():
-    compiler_args = [] # 
+def build(target):
+    # add switches for your arch/os/compiler
+    compiler_args = []
+    bits = platform.architecture()[0]
+    system = platform.system()
+    if system == 'Windows' and bits == 32:
+        compiler_args.append('/arch:SSE2')
+    
     ext = Extension(
                    'compiled_vm', 
                    ['compiled_vm.c'],
@@ -14,14 +22,15 @@ def build():
           version = '1.0',
           ext_modules = [ext],
           script_args = ['build_ext', '--inplace'])
+    shutil.copy('compiled_vm.pyd', target)
 
 def savefiles(declarations, statements):
     open('compiled_vm_declarations.inc', 'w').write(declarations)
     open('compiled_vm_statements.inc', 'w').write(statements)
 
-class vmwrapper():
-    def __init__(self, vm_desc):
-        self.lib = cdll.LoadLibrary('compiled_vm.pyd')
+class vmwrapper(object):
+    def __init__(self, target, vm_desc):
+        self.lib = cdll.LoadLibrary(target)
         self.rawrun = getattr(self.lib, "run")
         self.memory_type = c_double * vm_desc.memorysize
         self.output_type = c_double * vm_desc.outputsize

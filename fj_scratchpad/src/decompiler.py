@@ -64,11 +64,16 @@ class OperationEx(Operation):
     
     def determine_type(self):
         self.temporary = False
+        
         self.variable = False
+        self.local_variable = False
+        self.persistent_variable = False
+        
         self.constant = False
-        self.statement = False
         self.inline_constant = False
         self.declared_constant = False
+        
+        self.statement = False
         
         if self.op in (asm.out, asm.noop, asm.cmpz): 
             # cmpz's value is resolved using getcmpzvalue
@@ -85,9 +90,12 @@ class OperationEx(Operation):
             if user.addr >= self.addr and (user.op != asm.div or user.r2 != self.addr): 
                 self.temporary = True
         
-        
         if not self.temporary and not self.constant:
             self.variable = True
+            if self.addr < min(op.addr for op in self.usedby):
+                self.local_variable = True
+            else:
+                self.persistent_variable = True
             
         if self.variable or self.op == asm.out:
             self.statement = True
@@ -135,14 +143,22 @@ class OperationEx(Operation):
     
     def getvarname(self):
         assert self.variable
-        return "v" + str(self.addr)
+        if self.local_variable:
+            return "lv" + str(self.addr)
+        else:
+            return "pv" + str(self.addr)
+        
+    def getvaraccess(self):
+        if self.local_variable: return self.getvarname()
+        else: return 'memory[{0}]'.format(self.getvarname())
+        
 
     def getconstname(self):
         assert self.declared_constant
         return "c" + str(self.addr)
     
     def getvalue(self):
-        if self.variable: return 'memory[{0}]'.format(self.getvarname())
+        if self.variable: return self.getvaraccess()
         if self.inline_constant: return repr(self.data) 
         if self.declared_constant: return self.getconstname() 
         if self.temporary: return self.getexpression() 
@@ -177,10 +193,14 @@ class OperationEx(Operation):
         if self.op == asm.out:
             return 'output[{0}] = {1};'.format(self.r1, strip_parens(self.uses[0].getvalue()))
         else:
-            return 'memory[{0}] = {1};'.format(self.getvarname(), strip_parens(self.getexpression()))
+            return '{0} = {1};'.format(self.getvaraccess(), strip_parens(self.getexpression()))
     
     def getindexdeclaration(self, index):
+        assert self.persistent_variable
         return 'const int {0} = {1};'.format(self.getvarname(), index)
+    def getlocalvardeclaration(self):
+        assert self.local_variable
+        return 'double {0};'.format(self.getvarname())
         
         
 
@@ -197,12 +217,13 @@ def create_compilation_items(ops):
     
     declared_constants = [op.getconstdeclaration() for op in ops if op.declared_constant]
     var_indices = [op.getindexdeclaration(i) for i, op in enumerate(
-                    op for op in ops if op.variable)]
+                    op for op in ops if op.persistent_variable)]
+    var_declarations = [op.getlocalvardeclaration() for op in ops if op.local_variable]
     statements = [op.getstatement() for op in ops if op.statement]
-    data = [op.data for op in ops if op.variable]
-    datamap = [op.addr for op in ops if op.variable]
+    data = [op.data for op in ops if op.persistent_variable]
+    datamap = [op.addr for op in ops if op.persistent_variable]
     
-    return ('\n'.join(declared_constants + var_indices) + '\n', 
+    return ('\n'.join(declared_constants + var_indices + var_declarations) + '\n', 
             '\n'.join(statements) + '\n',
             data,
             datamap) 
