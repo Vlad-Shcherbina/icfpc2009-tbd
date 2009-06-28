@@ -97,6 +97,7 @@ class VM(object):
         self.state.scenario = float(number)
         
     def changeSpeed(self,dvx,dvy):
+        "deprecated"
         assert self.currentStep > 0
         self.writePort(2,float(dvx))
         self.writePort(3,float(dvy))
@@ -115,7 +116,7 @@ class VM(object):
         self.prevInPort = copy(self.inPort)
     
     def execute(self,debug=False):
-        """Perform one step of simulation"""
+        """deprecated, use executeSteps instead"""
         self.saveControl()
         self.currentStep += 1
         i = 0
@@ -176,6 +177,13 @@ class VM(object):
                 print ';    status =',self.status
         self.changeSpeed(0,0)
         self.updateState()
+
+    def executeSteps(self,steps,controls):
+        for i in range(steps):
+            if self.state.time in controls:
+                self.changeSpeed(controls[self.state.time])
+            # else reset automatically to 0,0 as done in this shitty execute
+            self.execute()
         
     def updateState(self):
         self.state.time = self.currentStep
