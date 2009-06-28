@@ -1,9 +1,11 @@
 CC=cc
-CFLAGS=-Wall -O2 -DDEBUG
+CFLAGS=-Wall -O2
+#-DDEBUG
 LDFLAGS=-lm
+OBJS=ovm.o solver.o
 
-ovm: ovm.o
-	${CC} ${LDFLAGS} -o ovm ovm.o
+ovm: ${OBJS}
+	${CC} ${LDFLAGS} ${OBJS} -o ovm
 
 %.o: %.c
 	${CC} ${CFLAGS} -c $<

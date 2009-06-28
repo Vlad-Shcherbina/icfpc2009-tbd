@@ -20,11 +20,12 @@ char* solution_file = 0;
 char* ports_file = 0;
 char* memory_file = 0;
 int dump = 0, debug = 0;
-int full_dump = 0, solve = 0;
+int full_dump = 0, solve = 0, verbose = 0;
 unsigned int iterations = 1;
 
 int process();
 int run_solution( char* file, double *score );
+int do_problem();
 
 /* guess what it is */
 unsigned int strswitch( const char* s, ... ) {
@@ -80,7 +81,7 @@ int main( int argc, char *argv[] )
 	{
 		/* if this is an option */
 		if( argv[i][0] == '-' )
-			switch( strswitch((argv[i])+1,"u","p","d","m","t","f","s","i","r") )
+			switch( strswitch((argv[i])+1,"u","p","d","m","t","f","s","i","r","v") )
 			{
 				case 1: /* do full dump (instructions and memory) */
 					dump = 1;
@@ -118,6 +119,11 @@ int main( int argc, char *argv[] )
 					i++;
 					if( i < argc )
 						solution_file = argv[i];
+					break;
+				case 10: /* tell everything */
+					i++;
+					if( i < argc )
+						verbose = atoi( argv[i] );
 					break;
 				default:
 					printf( "option \"%s\" is invalid\n", argv[i] );
@@ -173,6 +179,10 @@ int main( int argc, char *argv[] )
 		fprintf( stderr, "simulation failed with score %f\n", score );
 		return 0;
 	}
+
+	/* if we are in solver mode */
+	if( solve )
+		return do_problem();
 
 	/* read memory image */
 	if( memory_file )
@@ -408,7 +418,7 @@ int run_solution( char *file, double *score )
 	double dval;
 	if( (fread(&ival,sizeof(ival),1,f) != 1) || (ival != 0xCAFEBABE) )
 	{
-		fprintf( stderr, "solution file \"%s\" is invalid: wrong header\n", file );
+		fprintf( stderr, "solution file \"%s\" is invalid: wrong header (%08X)\n", file, ival );
 		fclose( f );
 		return 0;
 	}
@@ -440,6 +450,8 @@ int run_solution( char *file, double *score )
 			fclose( f );
 			return 0;
 		}
+		if( verbose )
+			fprintf( stderr, "next time step: %u\n", ival );
 		/* go to that step */
 		for(; time<ival; time++ )
 		{
@@ -450,6 +462,15 @@ int run_solution( char *file, double *score )
 				return 0;
 			}
 			process();
+			if( verbose > 1 )
+			{
+				fprintf( stderr, "%u:", time );
+				register unsigned int ptr;
+				for( ptr = 0; ptr < SIZE; ptr++ )
+					if( ports_out[ptr] != 0.0 )
+						printf( " %04X=%f", ptr, ports_out[ptr] );
+				fprintf( stderr, "\n" );
+			}
 			*score = ports_out[0];
 		}
 	
@@ -489,9 +510,11 @@ int run_solution( char *file, double *score )
 				return 0;
 			}
 			ports_in[ival] = dval;
+			if( verbose )
+				fprintf( stderr, "(%u) port %08X = %f\n", i, ival, dval );
 		}
 	} while( 1 );
 
 	fclose( f );
-	return 1;
+	return (*score>0.0)?1:0;
 }
