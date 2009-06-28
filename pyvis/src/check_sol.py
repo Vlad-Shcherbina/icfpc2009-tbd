@@ -43,14 +43,16 @@ if __name__ == '__main__':
             i += 12
             print 'write port',addr,value
             if timeStamp>0:
-                if addr == 1:
+                if addr == 2:
                     controls[timeStamp][0] += value
-                elif addr == 2:
+                elif addr == 3:
                     controls[timeStamp][1] += value
             vm.writePort(addr,value) 
             # bug here if you keep same nonzero speed for two steps!
         
-    assert numWrites == 0
+    if numWrites != 0:
+        print 'Solution file corrupted. '
+        print 'Probably you igonred nonpositive score warning when saving this solution'
     
     controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
     print 'controls =\\'
