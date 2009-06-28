@@ -47,7 +47,7 @@ class vmwrapper(object):
     
     def clonestate(self, memory, output):
         mem = self.memory_type()
-        memmove(mem, memory, len(res) * 8)
+        memmove(mem, memory, len(mem) * 8)
         out = self.output_type()
         memmove(out, output, len(out) * 8)
         return (mem, out)
