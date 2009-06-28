@@ -3,7 +3,7 @@ import sys
 import struct
 from pprint import pprint
 
-from vm import teamID,createScenario
+from vm import teamID,createScenario,getSolution
 
 
 if __name__ == '__main__':
@@ -54,5 +54,9 @@ if __name__ == '__main__':
     
     print 'SCORE IS',vm.state.score
 
-    assert sol == vm.getSolution()
+    checkedSol = getSolution(scenario,timeStamp,controls)
+    with open('checked_sol','wb') as fout:
+        fout.write(checkedSol)
+        
+    assert sol == checkedSol
     

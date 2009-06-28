@@ -16,6 +16,7 @@ __all__ = [
     "VM",
     "createScenario",
     "State",
+    "getSolution",
 ]
 
 teamID = 160
@@ -180,10 +181,13 @@ class VM(object):
 
     def executeSteps(self,steps,controls):
         for i in range(steps):
+            if self.state.score != 0:
+                return i
             if self.state.time in controls:
                 self.changeSpeed(*controls[self.state.time])
             # else reset automatically to 0,0 as done in this shitty execute
             self.execute()
+        return steps
         
     def updateState(self):
         self.state.time = self.currentStep
@@ -225,6 +229,8 @@ class VM(object):
             print "%04X %f"%(i,self.mem[i])
             
     def getSolution(self):
+        # deprecated shit
+        assert False, "don't use, use getSolution function instead"
         if self.state.score <= 0.0:
             print "Warning: (getSolution)"\
                 "score is nonpositive!!!!!!!!!!",self.state.score
@@ -242,6 +248,32 @@ def createScenario(fileName,scenario):
     vm.execute()
     
     return vm
+
+def getSolution(scenario,totalTime,controls):
+    res = [struct.pack("<III",0xCAFEBABE,teamID,int(scenario))]
+    
+    res.append(struct.pack("<II",0,1))
+    res.append(struct.pack("<Id",0x3E80,float(scenario)))
+
+    px = 0.0
+    py = 0.0
+    for i in range(1,totalTime):
+        x,y = controls.get(i,(0.0,0.0))
+        k = 0
+        if x != px:
+            k += 1
+        if y != py:
+            k += 1
+        if k > 0:
+            res.append(struct.pack("<II",i,k))
+            if x != px:
+                res.append(struct.pack("<Id",2,float(x)))
+            if y != py:
+                res.append(struct.pack("<Id",3,float(y)))
+        px,py = x,y
+    res.append(struct.pack("<II",totalTime,0))
+            
+    return "".join(res)
 
 def instrToStr(instr):
     dOp = instr>>28
