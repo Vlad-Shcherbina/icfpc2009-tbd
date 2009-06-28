@@ -47,7 +47,7 @@ class transfer:
             self.timeLeft -= 1
             
             if self.timeLeft == 0:
-                vm.changeSpeed(*secondPulse(self.r1, r, sx, sy, self.spin))
+                vm.changeSpeed(*secondPulse(self.r1, self.r2, sx, sy, self.spin))
                 self.state = 3
                 return self.spin
             else:
@@ -69,7 +69,6 @@ def predictPosition(sx, sy, r2):
     """ Predict the coordinates after a Hohmann transfer from the current orbit to r2. """
     
     r1 = sqrt(sx**2 + sy**2)
-    #r2 = integerTimeApprox(r1, r2)
     return (-r2 * sx/r1, -r2 * sy/r1)
 
 def timeRequired(r1, r2):
@@ -100,14 +99,14 @@ def secondPulse(r1, r2, x, y, spin):
     dVy =  x * dV / r2
     return (dVx, dVy)
 
+# this should not be used due to the large error of predictPosition
 def transferControl(r1, r2, coords, spin, tstart=1):
     x, y = coords
-    t = int(round(timeRequired(r1, r2)))
-    xt, yt = predictPosition(x, y, r2)
+    nsteps = int(round(timeRequired(r1, r2)))
+    prx, pry = predictPosition(x, y, r2)
     
-    print xt, yt
-    
-    return (t, {tstart: firstPulse(r1, r2, x, y, spin), tstart+t: secondPulse(r1, r2, x, y, spin)})
+    return (nsteps+1, {tstart: firstPulse(r1, r2, x, y, spin), \
+                        tstart+nsteps: secondPulse(r1, r2, prx, pry, spin)})
     
 def obtainSpin(vm):
     x1, y1 = vm.state.objects[0]
