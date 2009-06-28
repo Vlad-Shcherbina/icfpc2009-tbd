@@ -98,10 +98,11 @@ class StatsDrawer:
 		fuel2 = 0
 		if vm.scenario in ClearSkies:
 			fuel2 = vm.state.fuel2
-		  
+
+		x, y = vm.state.objects[0]
 		drawText("Step:%d\nFuel:%d\nsx: %09f\nsy:%09f\nfuelstation:%d"\
-				 %(vm.currentStep, vm.stats.fuel,
-				   vm.stats.sx, vm.stats.sy, fuel2),
+				 %(vm.currentStep, vm.state.fuel,
+				   x, y, fuel2),
 				 vis.centerx-vis.windowW/2*glPixel,
 				 vis.centery+(vis.windowW/2-20)*glPixel, 100, 100)
 		#glPopMatrix();
@@ -123,7 +124,7 @@ class SolutionThread(Thread):
 				self.solver.step()
 
 			time.sleep(0.0000002+0.0000)
-			score = self.vm.stats.score
+			score = self.vm.state.score
 			type = self.vm.scenario
 			if score != 0:
 				self.solution = self.vm.getSolution()
