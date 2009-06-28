@@ -34,10 +34,7 @@ class transfer:
             if self.spin == 0:
                 self.spin = getSpin(self.sxInit, self.syInit, sx, sy)
 
-            dV = self.spin * dV1(self.r1, self.r2)
-            dVx = -sy * dV / self.r1
-            dVy = sx * dV / self.r1
-            vm.changeSpeed(dVx, dVy)
+            vm.changeSpeed(*firstPulse(self.r1, self.r2, sx, sy, self.spin))
 
             #self.lastR = r
             self.timeLeft = int(round(timeRequired(self.r1, self.r2)))
@@ -50,10 +47,7 @@ class transfer:
             self.timeLeft -= 1
             
             if self.timeLeft == 0:
-                dV = self.spin * dV2(self.r1, self.r2)
-                dVx = -sy * dV / r
-                dVy = sx * dV / r
-                vm.changeSpeed(dVx, dVy)
+                vm.changeSpeed(*secondPulse(self.r1, r, sx, sy, self.spin))
                 self.state = 3
                 return self.spin
             else:
@@ -75,6 +69,7 @@ def predictPosition(sx, sy, r2):
     """ Predict the coordinates after a Hohmann transfer from the current orbit to r2. """
     
     r1 = sqrt(sx**2 + sy**2)
+    #r2 = integerTimeApprox(r1, r2)
     return (-r2 * sx/r1, -r2 * sy/r1)
 
 def timeRequired(r1, r2):
@@ -85,10 +80,38 @@ def fuelRequired(r1,r2):
 
 def radiusFromTime(r1, t):
     cuberoot = lambda x: x**(1/3.0)
-    return cuberoot((t/pi)**2 * 8 * mu) - r1
+    return abs(cuberoot((t/pi)**2 * 8 * mu) - r1)
 
 def integerTimeApprox(r1, r2):
     """ Returns a radius close to r2 that can be reached from r1 in integer time. """
     t = timeRequired(r1, r2)
     tint = round(t)
-    return radiusFromTime(r1, tint)    
+    return radiusFromTime(r1, tint)
+
+def firstPulse(r1, r2, x, y, spin):
+    dV = spin * dV1(r1, r2)
+    dVx = -y * dV / r1
+    dVy =  x * dV / r1
+    return (dVx, dVy)
+    
+def secondPulse(r1, r2, x, y, spin):
+    dV = spin * dV2(r1, r2)
+    dVx = -y * dV / r2
+    dVy =  x * dV / r2
+    return (dVx, dVy)
+
+def transferControl(r1, r2, coords, spin, tstart=1):
+    x, y = coords
+    t = int(round(timeRequired(r1, r2)))
+    xt, yt = predictPosition(x, y, r2)
+    
+    print xt, yt
+    
+    return (t, {tstart: firstPulse(r1, r2, x, y, spin), tstart+t: secondPulse(r1, r2, x, y, spin)})
+    
+def obtainSpin(vm):
+    x1, y1 = vm.state.objects[0]
+    vm.executeSteps(1, {})
+    x2, y2 = vm.state.objects[0]
+    return getSpin(x1, y1, x2, y2)
+    
