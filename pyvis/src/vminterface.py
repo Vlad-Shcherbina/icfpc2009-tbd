@@ -9,10 +9,8 @@ import struct
 from math import *
 
 __all__ = [
-    "instrToStr",
     "teamID",
     "createScenario",
-    "State",
     "getSolution",
 ]
 
