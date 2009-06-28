@@ -1,5 +1,6 @@
 import struct
 import itertools
+from collections import namedtuple
 from instructions import asm, Operation
 
 MAX_OUT_PORTS = 0x70
