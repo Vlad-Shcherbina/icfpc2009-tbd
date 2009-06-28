@@ -11,13 +11,10 @@ __declspec(dllexport) int run(int steps, double i2, double i3, double i16000, do
 	
 	for (cnt = 0; cnt < steps; cnt++)
 	{
-		#include "compiled_vm_statements.inc"
-		
 		if (output[0] != 0.0)
-		{
-			cnt++;
 			break;
-		}
+			
+		#include "compiled_vm_statements.inc"
 	}
 	return cnt;
 }
