@@ -44,7 +44,8 @@ def calcBadness(vm,index,controls,t1,t2):
         badness = max(badness,b)
     return badness
 
-def improveMeetAndGreet(vm,index,controls,freePoints,t1,t2,delta=0.0001):
+def improveMeetAndGreet(vm,index,controls,freePoints,t1,t2,delta=0.0001,
+                        maxChange=1000):
     t0 = vm.state.time
     assert t0<t1 and t1<t2
     
@@ -74,20 +75,36 @@ def improveMeetAndGreet(vm,index,controls,freePoints,t1,t2,delta=0.0001):
     sol = array(sol)
     sol.shape = (len(sol)//2,2)
     
+    change = 0 
+    for t,row in zip(freePoints,sol):
+        for f,(dx,dy) in zip(row,deltas):
+            change += abs(f)*sqrt(dx*dx+dy*dy)
+            
+    if change<maxChange:
+        k = 1
+    else:
+        k = maxChange/change
+    
     result = deepcopy(controls)
     for t,row in zip(freePoints,sol):
         for f,(dx,dy) in zip(row,deltas):
-            updateControls(result,t,f*dx,f*dy)
+            updateControls(result,t,k*f*dx,k*f*dy)
     return result
 
 def tryImprove(vm,index,controls,freePoints,t1,t2):
+    vm = vm.clone()
+    
+    # factor out common part of computation
+    t0 = min(freePoints)
+    vm.executeSteps(t0-vm.state.time,controls)
+    
     badness = calcBadness(vm,index,controls,t1,t2)
     while badness > 950.0:
         attempts = []
-        for delta in [0.0001,0.001,0.01,0.1]:
+        for delta in [0.0001,0.1]:
             try:
-                delta = 0.001
                 c = improveMeetAndGreet(vm,index,controls,freePoints,t1,t2,delta)
+                #print c
                 newBadness = calcBadness(vm,index,c,t1,t2)
                 attempts.append((newBadness,c))
             except ImproverFailure:
@@ -99,6 +116,6 @@ def tryImprove(vm,index,controls,freePoints,t1,t2):
             raise ImproverFailure("no actual improvements")
         print 'improvement from',badness,'to',attempts[0]
         badness = attempts[0][0]
-        controls = c
+        controls = attempts[0][1]
     print "Succesfully improved to badness",badness
     return controls
