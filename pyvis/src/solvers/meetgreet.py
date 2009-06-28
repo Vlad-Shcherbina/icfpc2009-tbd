@@ -1,9 +1,10 @@
-from vm import VM
 import sys
 from math import sqrt, atan2, pi
+import time
+
+import vm as VM
 import hohmann_transfer as ht
 import orbital as o
-import time
 
 def printStats(vm):
     #print "Fuel: %f; Self: %s; Target: %s" % (vm.outPort[1],  str(selfCoords(vm)), str(targetCoords(vm)))
@@ -29,14 +30,9 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
 
-    fin = open("../../../task/bin2.obf","rb")
-    data = fin.read()
-        
-    vm = VM(data)
-    vm.setScenario(2000.0 + int(sys.argv[1]))
-
-    vm.execute()
-    
+    scenario = 2000 + int(sys.argv[1])    
+    vm = VM.createScenario("../../../task/bin2.obf", scenario)
+ 
     # gather observational data
     sx1, sy1 = vm.state.objects[0]
     tx1, ty1 = vm.state.objects[1]
@@ -67,15 +63,18 @@ if __name__ == '__main__':
         vm.execute()
 
     printStats(vm)
-    print prsx, prsy
-    trans = ht.transfer(r1, r2, sspin)
+#    print prsx, prsy
 
+    ht.transfer(r1, r2, sspin).performTransfer(vm)
+
+#    printStats(vm)    
     while vm.state.score == 0.0:
-        printStats(vm)
-        trans.step(vm)
         vm.execute()
 
     print vm.state.score
+    
+    with open('../solutions/sol_' + str(scenario),'wb') as fout:
+        fout.write(vm.getSolution())
     
 class MeetGreetController:
     def __init__(self, vm):

@@ -1,8 +1,9 @@
-from vm import VM
 import sys
 from math import sqrt
-import hohmann_transfer as ht
 import itertools
+
+import vm as VM
+import hohmann_transfer as ht
 
 def printStats(vm):
     print "Fuel: %f; Rcurrent: %f; Rdest: %f" % (vm.state.fuel,  vm.state.r, vm.state.radius)
@@ -51,13 +52,8 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
 
-    fin = open("../../../task/bin1.obf","rb")
-    data = fin.read()
-        
-    vm = VM(data)
-    vm.setScenario(1000.0 + int(sys.argv[1]))
-    
-    vm.execute()    # please don't remove this line again
+    scenario = 1000 + int(sys.argv[1])    
+    vm = VM.createScenario("../../../task/bin1.obf", scenario)
 
     r1 = vm.state.r
     r2 = vm.state.radius
@@ -73,4 +69,7 @@ if __name__ == '__main__':
             vm.execute()
 
     print vm.state.score
+    
+    with open('../solutions/sol_' + str(scenario),'wb') as fout:
+        fout.write(vm.getSolution())
     
