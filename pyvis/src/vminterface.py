@@ -11,22 +11,12 @@ from math import *
 __all__ = [
     "instrToStr",
     "teamID",
-    "VM",
     "createScenario",
     "State",
     "getSolution",
 ]
 
 teamID = 160
-
-global Hohmann, MeetGreet, Eccentric, ClearSkies
-
-Hohmann = range(1001,1005)
-MeetGreet = range(2001,2005)
-Eccentric = range(3001,3005)
-ClearSkies = range(4001,4005)
-
-EarthRadius = 6.357e6
 
 class State(object):
     __slots__ = (
@@ -144,6 +134,8 @@ def createScenario(fileName, scenario, vmconstructor):
     ctor = vmconstructor(fileName)
     vm = ctor.newvm(scenario)
     vmi = VMInterface(vm)
+    vmi.run() # run one step
+    assert vmi.state.time == 1
     return vmi
 
 def getSolution(scenario,totalTime,controls):
