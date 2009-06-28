@@ -90,12 +90,13 @@ class PythonVM(object):
                 if debug:        
                     print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
                     print ';    status =',self.status
-        else:
-            return step + 1
-        return step
+        return steps
 
     def getoutput(self):
         return self.output
+    
+    def clearoutput(self):
+        self.output.clear()
     
     def reset(self):
         self.status = 0
@@ -138,7 +139,33 @@ class PythonVMConstructor(object):
     def newvm(self, scenario):
         return PythonVM(self, scenario)
 
+def instrToStr(instr):
+    dOp = instr>>28
+    if dOp != 0:
+        r1 = (instr>>14)&0x3FFF
+        r2 = instr&0x3FFF
+        fmt = {
+            1:"add mem[%(r1)04X],mem[%(r2)04X]",
+            2:"sub mem[%(r1)04X],mem[%(r2)04X]",
+            3:"mul mem[%(r1)04X],mem[%(r2)04X]",
+            4:"div mem[%(r1)04X],mem[%(r2)04X]",
+            5:"write outPort[%(r1)04X],mem[%(r2)04X]",
+            6:"phi mem[%(r1)04X],mem[%(r2)04X]",
+            }[dOp]
+    else:
+        sOp = instr>>24
+        r1 = instr&0x3FFF
+        cmpOp = (instr>>20)&15
+        cmpStr = ['<','<=','=','>=','>'][cmpOp]
+        fmt = {
+            0:'noop',
+            1:'cmp mem[%(r1)04X] %(cmpStr)s 0.0',
+            2:'sqrt mem[%(r1)04X]',
+            3:'copy mem[%(r1)04X]',
+            4:'input inPort[%(r1)04X]',
+            }[sOp]
 
+    return fmt%locals()
 
 if __name__ == '__main__':
     constructor = PythonVMConstructor('../../task/bin4.obf')

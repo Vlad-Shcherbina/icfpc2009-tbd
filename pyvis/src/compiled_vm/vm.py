@@ -23,6 +23,10 @@ class CompiledVM(object):
 
     def getoutput(self):
         return self.vmwrapper.output
+
+    def clearoutput(self):
+        self.vmwrapper.output.clear()
+    
     
     def reset(self):
         self.memory[:] = self.vm_desc.memory
