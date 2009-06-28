@@ -15,11 +15,17 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
 
-from vm import Hohmann, MeetGreet, Eccentric, ClearSkies, EarthRadius
+#from vm import Hohmann, MeetGreet, Eccentric, ClearSkies, EarthRadius
 from simulator import Simulator
 
-global glPixel
 glPixel = 1
+
+Hohmann = range(1001,1005)
+MeetGreet = range(2001,2005)
+Eccentric = range(3001,3005)
+ClearSkies = range(4001,4005)
+
+EarthRadius = 6.357e6
 
 #from OpenGLContext import testingcontext
 #BaseContext, MainFunction = testingcontext.getInteractive()
@@ -29,43 +35,12 @@ glPixel = 1
 
 name = 'OrbitVIS'
 
-def circle(x,y,r,segments=22):
+def circle(x,y,r,segments=30):
 	glBegin(GL_LINE_LOOP)
 	for i in range(segments):
 		a = 2*3.1415/segments*i
 		glVertex2f(x+r*cos(a),y+r*sin(a))
 	glEnd()
-
-def drawText( value, x,y,  windowHeight, windowWidth, step = 18 ):
-	"""Draw the given text at given 2D position in window
-	"""
-	#glMatrixMode(GL_PROJECTION);
-	# For some reason the GL_PROJECTION_MATRIX is overflowing with a single push!
-	# glPushMatrix()
-	#matrix = glGetDouble( GL_PROJECTION_MATRIX )
-	
-	#glLoadIdentity();
-	#glOrtho(0.0, windowHeight or 32, 0.0, windowWidth or 32, -1.0, 1.0)
-	#glMatrixMode(GL_MODELVIEW);
-	#glPushMatrix();
-	#glLoadIdentity();
-	glRasterPos2i(int(x), int(y));
-	lines = 1
-##	import pdb
-##	pdb.set_trace()
-	for character in value:
-		if character == '\n':
-			glRasterPos2i(x, y-(lines*step*glPixel))
-			lines = lines+1
-		else:
-			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(character));
-	#glPopMatrix();
-	#glMatrixMode(GL_PROJECTION);
-	# For some reason the GL_PROJECTION_MATRIX is overflowing with a single push!
-	# glPopMatrix();
-	#glLoadMatrixd( matrix ) # should have un-decorated alias for this...
-	
-	#glMatrixMode(GL_MODELVIEW);
 
 factor = 100
 
@@ -88,7 +63,7 @@ class StatsDrawer:
 	def __init__(self):
 		pass
 	
-	def __call__(self, vis):
+	def draw(self, vis):
 		vm = vis.vm
 		#glPushMatrix();
 		#glMatrixMode(GL_PROJECTION);
@@ -101,42 +76,48 @@ class StatsDrawer:
 			fuel2 = vm.state.fuel2
 
 		x, y = vm.state.objects[0]
-		drawText("Step:%d\nFuel:%d\nsx: %09f\nsy:%09f\nfuelstation:%d"\
+		vis.drawText("Step:%d\nFuel:%d\nsx: %09f\nsy:%09f\nfuelstation:%d"\
 				 %(vm.currentStep, vm.state.fuel,
 				   x, y, fuel2),
-				 vis.centerx-vis.windowW/2*glPixel,
-				 vis.centery+(vis.windowW/2-20)*glPixel, 100, 100)
+				 0, 20, 100, 100)
 		#glPopMatrix();
 
-vSum = lambda v1, v2: (v1[0]+v2[0], v1[1]+v2[1])
-vDiff = lambda v1, v2: (v1[0]-v2[0], v1[1]-v2[1])
+from solvers.orbital import *
 
 class RadiusDrawer:
 	def __init__(self):
-		self.prevpos = None
-		self.history = []
 		pass
 	
-	def __call__(self, vis):
+	def draw(self, vis):
 		vm = vis.vm
 
-		if self.prevpos is None:
-			self.prevpos = vm.state.objects[0]
-			pass
-		curpos = vm.state.objects[0]
-		nextpos = vSum(curpos, vDiff(curpos, self.prevpos))
-		self.prevpos = curpos
-		
-		glPushMatrix()
-		#glTranslatef(*, 0)
-		glColor3f(0.5,0.5,0.5)
-		circle(0, 0, vm.state.r)
+		if len(vm.history) < 3:
+			return
 
-		glBegin(GL_LINE_LOOP)
-		glVertex2f(*curpos)
-		glVertex2f(*nextpos)
-		glEnd()	
-		glPopMatrix()
+		for i in range(len(vm.state.objects)):
+			curpos = vm.state.objects[i]
+			prevpos = vm.history[-2].objects[i]
+			vd = vDiff(curpos, prevpos)
+			nextpos = vSum(curpos, vMul(vd,10e6/vLen(vd)))
+
+			cradius = vLen(curpos)
+			
+			glPushMatrix()
+			glColor3f(0.5,0.5,0.5)
+			circle(0, 0, cradius)
+			glBegin(GL_LINE_LOOP)
+			glVertex2f(*curpos)
+			glVertex2f(*nextpos)
+			glEnd()	
+			glPopMatrix()
+
+
+class PredictDrawer:
+	def __init__(self):
+		pass
+	
+	def draw(self, vis):
+		vm = vis.vm
 		
 		#history = History(vm,lookAhead=10)
 		#simulator = Simulator(history.states[0],history.states[1:2])
@@ -187,7 +168,7 @@ class SolutionThread(Thread):
 			score = vm.state.score
 			type = vm.scenario
 			if score != 0:
-				break
+				#break
 				self.solution = vm.getSolution()
 				fname = "solutions/sol_%04d_%06d_%s.osf"%(type, score,
 			                re.sub(r'[\s:]', "_", time.ctime()))
@@ -240,6 +221,41 @@ class Visualizer(Thread):
 	def registerDrawer(self,drawer):
 		self.drawers.append(drawer)
 		
+	def drawText(vis, value, x,y,  windowHeight, windowWidth, step = 18 ):
+		"""Draw the given text at given 2D position in window
+		"""
+		#glMatrixMode(GL_PROJECTION);
+		# For some reason the GL_PROJECTION_MATRIX is overflowing with a single push!
+		# glPushMatrix()
+		#matrix = glGetDouble( GL_PROJECTION_MATRIX )
+		
+		#glLoadIdentity();
+		#glOrtho(0.0, windowHeight or 32, 0.0, windowWidth or 32, -1.0, 1.0)
+		#glMatrixMode(GL_MODELVIEW);
+		#glPushMatrix();
+		#glLoadIdentity();
+		x = int(vis.centerx-(vis.windowW/2+x)*glPixel)
+		y = int(vis.centery+(vis.windowH/2-y)*glPixel)
+					 
+		glRasterPos2i(int(x), int(y));
+		lines = 1
+	##	import pdb
+	##	pdb.set_trace()
+		for character in value:
+			if character == '\n':
+				glRasterPos2i(x, y-(lines*step*glPixel))
+				lines = lines+1
+			else:
+				glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(character));
+		#glPopMatrix();
+		#glMatrixMode(GL_PROJECTION);
+		# For some reason the GL_PROJECTION_MATRIX is overflowing with a single push!
+		# glPopMatrix();
+		#glLoadMatrixd( matrix ) # should have un-decorated alias for this...
+		
+		#glMatrixMode(GL_MODELVIEW);
+
+	
 	def earth(self):
 		glColor3f(0,1,0)
 		circle(0, 0, EarthRadius)
@@ -416,8 +432,11 @@ class Visualizer(Thread):
 			self.moon(vm.state.moon[0], vm.state.moon[1])	
 			pass
 
-		for drawer in self.drawers:
-			drawer(self)
+		try:
+			for drawer in self.drawers:
+				drawer.draw(self)
+		except:
+			pass
 
 		if self.scaler:
 			self.sx = self.sx*0.95

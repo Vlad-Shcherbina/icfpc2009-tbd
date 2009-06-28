@@ -125,4 +125,68 @@ class MeetGreetController:
             self.trans.step(vm)
             #time.sleep(0.001)
             pass
- 
+
+
+class MeetGreetLasyController:
+    """
+    Does hohmann on a first step, then uses hohmanns to correct
+    orbit and 'await' for the sattelite on the same orbit
+    """
+    def __init__(self, vm):
+        self.vm = vm
+        vm.execute()
+        self.calcData()
+        self.state = 'init'
+        
+    def calcData(self):
+        self.sx1, self.sy1 = self.vm.state.objects[0]
+        self.tx1, self.ty1 = self.vm.state.objects[1]
+        self.r1 = self.vm.state.r
+        self.r2 = o.vLen(self.vm.state.objects[1])
+        self.diff = sqrt( (self.sx1-self.tx1)**2 + (self.sy1-self.ty1)**2)
+        self.a1 = o.vAngle(self.vm.state.objects[0])
+        self.a2 = o.vAngle(self.vm.state.objects[1])
+        # da determines either to wait and slowdown or to speedup
+        self.da = self.a1 - self.a2
+        if (self.da > pi):
+            self.da = self.da - 2*pi
+                    
+    def step(self):
+        vm = self.vm
+        self.calcData()
+        
+        if self.state == 'init':
+            self.trans = ht.transfer(self.r1, self.r2)
+            self.state = 'do_hohmann'
+        
+        if self.state == 'do_hohmann':
+            spin = self.trans.step(vm)
+            if spin != 0:
+                self.state = 'positioned'
+                pass
+            
+        if self.state == 'positioned':
+            # slowing down or fastening
+            if self.diff > 1000:
+                if self.da < 0:
+                    self.r2 = self.r1 + self.diff/5
+                else:
+                    self.r2 = self.r1 - self.diff/5
+                self.trans = ht.transfer(self.r1, self.r2)
+                self.state = 'await'
+                pass
+
+        if self.state == 'await':
+            spin = self.trans.step(vm)
+            if spin != 0:
+                self.trans = ht.transfer(self.r1, self.r2)
+                self.state = 'do_hohmann'
+                pass
+            
+    def draw(self, vis):
+        vis.drawText("state:%s\n r1:%f\n r2:%f\n diff:%f\n a1:%f,a2:%f,da:%f"\
+                 %(self.state, self.r1, self.r2, self.diff,
+                   self.a1, self.a2, self.da),
+                 0, 120, 100, 100)
+        pass
+                

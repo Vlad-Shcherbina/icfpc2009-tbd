@@ -9,11 +9,11 @@ from math import *
 
 from visualizer import *
 
-from vm import VM
-from vm import Hohmann, MeetGreet, Eccentric, ClearSkies
+import vm
+from visualizer import Hohmann, MeetGreet, Eccentric, ClearSkies
 
 from solvers.hohmann import HohmannController
-from solvers.meetgreet import MeetGreetController
+from solvers.meetgreet import MeetGreetController, MeetGreetLasyController
 
 if __name__ == '__main__':
 
@@ -21,33 +21,21 @@ if __name__ == '__main__':
     #vm = OrbitVM(OrbitVM.Eccentric, 1)
     #vm = DummyVM(OrbitVM.ClearSkies, 1)
     
-    config = 2
+    config = 4
 
     if 0:
-        with open("../../task/bin1.obf","rb") as fin:
-            data = fin.read()
-        vm = VM(data)
-        vm.setScenario(Hohmann[config-1])
+        vm = vm.createScenario("../../task/bin1.obf", Hohmann[config-1])
         solver = HohmannController(vm)
     elif 1:
-        with open("../../task/bin2.obf","rb") as fin:
-            data = fin.read()
-        vm = VM(data)
-        vm.setScenario(MeetGreet[config-1])
+        vm = vm.createScenario("../../task/bin2.obf", MeetGreet[config-1])
         solver = MeetGreetController(vm)
-    elif 0:
-        with  open("../../task/bin3.obf","rb") as fin:
-            data = fin.read()
-        vm = VM(data)
-        vm.setScenario(Eccentric[config-1])
+        #solver = MeetGreetLasyController(vm)
+    elif 1:
+        vm = vm.createScenario("../../task/bin3.obf", Eccentric[config-1])
         solver = MeetGreetController(vm)
     elif 1:
-        with open("../../task/bin4.obf","rb") as fin:
-            data = fin.read()
-        vm = VM(data)
-        vm.setScenario(ClearSkies[config-1])
+        vm = vm.createScenario("../../task/bin4.obf", ClearSkies[config-1])
         solver = None
-    
     
     kh = keyboardHandler
     #kh = None
@@ -55,5 +43,7 @@ if __name__ == '__main__':
 
     vis.registerDrawer(StatsDrawer())
     vis.registerDrawer(RadiusDrawer())
+    #vis.registerDrawer(PredictDrawer())
+    vis.registerDrawer(solver)
     
     vis.run()

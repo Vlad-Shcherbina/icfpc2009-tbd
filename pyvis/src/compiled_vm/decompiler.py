@@ -243,8 +243,8 @@ def decode_src(buf):
     return ops
     
 
-vm_description = namedtuple('vm_description', 
-    'declarations statements memorysize outputsize memory memorymap')
+#vm_description = namedtuple('vm_description', 
+#    'declarations statements memorysize outputsize memory memorymap')
 
 class vm_description(object):
     def __init__(self, declarations, statements, memorysize, outputsize, memory, memorymap):

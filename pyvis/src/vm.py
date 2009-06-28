@@ -21,15 +21,6 @@ __all__ = [
 
 teamID = 160
 
-global Hohmann, MeetGreet, Eccentric, ClearSkies
-
-Hohmann = range(1001,1005)
-MeetGreet = range(2001,2005)
-Eccentric = range(3001,3005)
-ClearSkies = range(4001,4005)
-
-EarthRadius = 6.357e6
-
 class State(object):
     __slots__ = (
         'scenario',
@@ -230,7 +221,7 @@ class VM(object):
             
     def getSolution(self):
         # deprecated shit
-        assert False, "don't use, use getSolution function instead"
+        #assert False, "don't use, use getSolution function instead"
         if self.state.score <= 0.0:
             print "Warning: (getSolution)"\
                 "score is nonpositive!!!!!!!!!!",self.state.score
