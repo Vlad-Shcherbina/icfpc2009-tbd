@@ -11,7 +11,7 @@ from math import *
 from random import *
 import time
 
-from orbitvm import OrbitVM
+from vm import Hohmann, MeetGreet, Eccentric, ClearSkies, EarthRadius
 
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -48,7 +48,7 @@ def drawText( value, x,y,  windowHeight, windowWidth, step = 18 ):
 	#glMatrixMode(GL_MODELVIEW);
 	#glPushMatrix();
 	#glLoadIdentity();
-	glRasterPos2i(x, y);
+	glRasterPos2i(int(x), int(y));
 	lines = 1
 ##	import pdb
 ##	pdb.set_trace()
@@ -76,7 +76,7 @@ keyMapping = {
     }
 
 def keyboardHandler(vis, key, x, y):
-    vm = vis.vm.getVMImpl()
+    vm = vis.vm
     if keyMapping.has_key(key):
     	print keyMapping[key]
         vm.changeSpeed(keyMapping[key][0]*factor, keyMapping[key][1]*factor)
@@ -88,16 +88,22 @@ class StatsDrawer:
 		pass
 	
 	def __call__(self, vis):
-		vm = vis.vm.getVMImpl()
+		vm = vis.vm
 		#glPushMatrix();
 		#glMatrixMode(GL_PROJECTION);
 		#glOrtho(0.0, 100, 0.0, 100, -1.0, 1.0)
 		#glLoadIdentity();
 		glColor3f(1,1,1)
-		drawText("Fuel:%d\nsx: %09f\nsy:%09f"%(vm.stats.fuel, vm.stats.sx, vm.stats.sy),
-				 0, 0, 100, 100)
-		drawText("step:%d"%(vm.currentStep),
-				 vis.centerx-vis.windowW/2*glPixel, vis.centery+(vis.windowW/2-20)*glPixel, 100, 100)
+		
+		fuel2 = 0
+		if vm.scenario in ClearSkies:
+			fuel2 = vm.state.fuel2
+		  
+		drawText("Step:%d\nFuel:%d\nsx: %09f\nsy:%09f\nfuelstation:%d"\
+				 %(vm.currentStep, vm.stats.fuel,
+				   vm.stats.sx, vm.stats.sy, fuel2),
+				 vis.centerx-vis.windowW/2*glPixel,
+				 vis.centery+(vis.windowW/2-20)*glPixel, 100, 100)
 		#glPopMatrix();
 		
 				
@@ -110,15 +116,17 @@ class SolutionThread(Thread):
 		
 	def run(self):
 		while not self.term:
-			self.vm.step()
+			
+			self.vm.execute()
+			
 			if self.solver:
 				self.solver.step()
 
 			time.sleep(0.0000002+0.0000)
-			score = self.vm.readport(0)
-			type = self.vm.type+self.vm.config
+			score = self.vm.stats.score
+			type = self.vm.scenario
 			if score != 0:
-				self.solution = self.vm.getVMImpl().getSolution()
+				self.solution = self.vm.getSolution()
 				fname = "solutions/sol_%04d_%06d_%s.osf"%(type, score,
 			                re.sub(r'[\s:]', "_", time.ctime()))
 				with open(fname,'wb') as fout:
@@ -129,6 +137,7 @@ class SolutionThread(Thread):
 
 	def terminate(self):
 		self.term = 1
+		self.join
 		return
 	
 	def _idle(self):
@@ -159,7 +168,7 @@ class Visualizer(Thread):
 		
 		self.zoomstate = 0
 		self.manualzoom = 0
-		self.sradius = OrbitVM.EarthRadius/15
+		self.sradius = EarthRadius/15
 
 		""" if scaling back is required """
 		self.scaler = scaler
@@ -171,13 +180,15 @@ class Visualizer(Thread):
 		
 	def earth(self):
 		glColor3f(0,1,0)
-		circle(0, 0, OrbitVM.EarthRadius)
+		circle(0, 0, EarthRadius)
 
 	def moon(self, x, y):
+		self.relocate(x, y)
+		
 		glPushMatrix()
 		glTranslatef(x, y, 0)
 		glColor3f(1,1,1)
-		circle(0, 0, OrbitVM.EarthRadius/5)
+		circle(0, 0, EarthRadius/5)
 		glPopMatrix()
 
 	def satellite(self, x, y):
@@ -205,7 +216,7 @@ class Visualizer(Thread):
 		glTranslatef(x,y,0)
 		glColor3f(1,0,1)
 		circle(0, 0, self.sradius)
-		circle(0, 0, self.sradius*1.1)
+		circle(0, 0, self.sradius*1.1)		
 		glPopMatrix()
 
 	def relocate(self, x, y):
@@ -284,14 +295,15 @@ class Visualizer(Thread):
 	
 	def _idle(self):
 		# because it is not a message handler
+		
 		if self.terminate:
 			if self.window:
 				glutDestroyWindow(self.window)
 				self.window = None
+			self.solutionThread.terminate()
 			self.vm.terminate()
 			return
-			#exit()
-		time.sleep(0.02)
+		#time.sleep(0.02)
 		glutPostRedisplay()
 
 
@@ -301,7 +313,7 @@ class Visualizer(Thread):
 		glLoadIdentity()
 		
 		self.lastmax = 0
-		self.relocate(OrbitVM.EarthRadius, OrbitVM.EarthRadius)
+		self.relocate(EarthRadius, EarthRadius)
 		
 		glOrtho(-self.sx+self.centerx,
 				self.sx+self.centerx,
@@ -316,39 +328,31 @@ class Visualizer(Thread):
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
 
-		#self.font.render( "ffun!" )
-
+		vm = self.vm
+		objects = vm.state.objects
+		
 		# earth
 		self.earth()
 		
 		# self
-		sax = self.vm.readport(0x2)
-		say = self.vm.readport(0x3)
-		#print "sat x=% 0f y=% 0f"%(sax, say) 
-		self.satellite(sax, say)
+		self.satellite(objects[0][0], objects[0][1])
 		
-		#print "t %d         sat2 x=% 0f y=% 0f"%(self.vm.gettime(), sax, say)
-
-		if   self.vm.gettype() == OrbitVM.Hohmann:
-			1
-		elif self.vm.gettype() == OrbitVM.MeetnGreet or self.vm.gettype() == OrbitVM.Eccentric:
-			sax = sax - self.vm.readport(0x4)
-			say = say - self.vm.readport(0x5)
+		if vm.scenario in Hohmann:
+			pass
+		
+		elif vm.scenario in MeetGreet or vm.scenario in Eccentric:
+			self.satellite1(objects[1][0], objects[1][1])
+			pass
+		
+		elif vm.scenario in ClearSkies:
 			
-			self.satellite1(sax, say)
-		elif self.vm.gettype() == OrbitVM.ClearSkies:
-			fx = sax - self.vm.readport(0x4)
-			fy = say - self.vm.readport(0x5)
-			ffuel = self.vm.readport(0x6)
-			self.fuelstation(sax, say, ffuel)
-			for c in range(11):
-				sanx = sax - self.vm.readport(0x7+c*3)
-				sany = say - self.vm.readport(0x8+c*3)
-				self.satellite1(sanx, sany)
+			self.fuelstation(objects[1][0], objects[1][1], vm.state.fuel2)
 
-			sanx = sax - self.vm.getVMImpl().state.moon[0]
-			sany = say - self.vm.getVMImpl().state.moon[1]
-			self.moon(sanx, sany)
+			#for c in range(12):
+			#	self.satellite1(objects[2+c][0], objects[2+c][1])
+
+			self.moon(vm.state.moon[0], vm.state.moon[1])	
+			pass
 
 		for drawer in self.drawers:
 			drawer(self)
@@ -359,7 +363,5 @@ class Visualizer(Thread):
 		
 		if self.zoomstate:
 			self.sx = self.sx + self.sx*0.1 * self.zoomstate
-			self.centerx = self.mousex
-			self.centery = self.mousey
 
 		glutSwapBuffers()

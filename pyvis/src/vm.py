@@ -20,6 +20,16 @@ __all__ = [
 
 teamID = 160
 
+global Hohmann, MeetGreet, Eccentric, ClearSkies
+
+Hohmann = range(1001,1005)
+MeetGreet = range(2001,2005)
+Eccentric = range(3001,3005)
+ClearSkies = range(4001,4005)
+
+EarthRadius = 6.357e6
+
+
 class O(object):
     pass
 

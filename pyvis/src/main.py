@@ -8,9 +8,10 @@ from operator import *
 from math import *
 
 from visualizer import *
-from orbitvm import OrbitVM, DummyVM
-from pyvmwrap import PyVM
+
 from vm import VM
+from vm import Hohmann, MeetGreet, Eccentric, ClearSkies
+
 from solvers.hohmann import HohmannController
 from solvers.meetgreet import MeetGreetController
 
@@ -20,27 +21,31 @@ if __name__ == '__main__':
     #vm = OrbitVM(OrbitVM.Eccentric, 1)
     #vm = DummyVM(OrbitVM.ClearSkies, 1)
     
-    config = 2
+    config = 4
 
     if 0:
         with open("../../task/bin1.obf","rb") as fin:
             data = fin.read()
-        vm = PyVM(data, OrbitVM.Hohmann, config)
-        solver = HohmannController(vm.getVMImpl())
-    elif 0:
+        vm = VM(data)
+        vm.setScenario(Hohmann[config-1])
+        solver = HohmannController(vm)
+    elif 1:
         with open("../../task/bin2.obf","rb") as fin:
             data = fin.read()
-        vm = PyVM(data, OrbitVM.MeetnGreet, config)
-        solver = MeetGreetController(vm.getVMImpl())
-    elif 0:
+        vm = VM(data)
+        vm.setScenario(MeetGreet[config-1])
+        solver = MeetGreetController(vm)
+    elif 1:
         with  open("../../task/bin3.obf","rb") as fin:
             data = fin.read()
-        vm = PyVM(data, OrbitVM.Eccentric, config)
-        solver = MeetGreetController(vm.getVMImpl())
+        vm = VM(data)
+        vm.setScenario(Eccentric[config-1])
+        solver = MeetGreetController(vm)
     elif 1:
         with open("../../task/bin4.obf","rb") as fin:
             data = fin.read()
-        vm = PyVM(data, OrbitVM.ClearSkies, config)
+        vm = VM(data)
+        vm.setScenario(ClearSkies[config-1])
         solver = None
     
     
