@@ -29,10 +29,6 @@ ClearSkies = range(4001,4005)
 
 EarthRadius = 6.357e6
 
-
-class O(object):
-    pass
-
 class State(object):
     __slots__ = (
         'scenario',
@@ -84,9 +80,6 @@ class VM(object):
         self.currentStep = 0
         self.controlCommands = []
         
-        self.stats = O() # STATS FIELD IS DEPRECATED. USE STATE INSTEAD
-        self.stats.hoh = O()
-    
     def clone(self):
         return deepcopy(self)
         
@@ -99,7 +92,6 @@ class VM(object):
         assert self.currentStep == 0
         self.scenario = int(number)
         self.writePort(0x3E80,float(number))
-        self.updateStats()
         self.state = State()
         self.state.scenario = float(number)
         
@@ -182,7 +174,6 @@ class VM(object):
                 print "%04X  %s % 0f"%(i,instrToStr(instr).ljust(30),self.mem[i]),
                 print ';    status =',self.status
         self.changeSpeed(0,0)
-        self.updateStats()
         self.updateState()
         
     def updateState(self):
@@ -210,14 +201,9 @@ class VM(object):
         else:
             assert False,'unknown scenario'
 
-    def updateStats(self):
-        self.stats.score = self.outPort[0]
-        self.stats.fuel = self.outPort[1]
-        self.stats.sx = self.outPort[2]
-        self.stats.sy = self.outPort[3]
-        if self.scenario >= 1001 and self.scenario <= 1004:
-            self.stats.hoh.r = self.outPort[4]
-        # ETC ETC ETC
+    def getStats(self):
+        assert False,"Stop using this deprecated shit! use 'state' instead"
+    stats = property(getStats)
 
     def printStats(self):
         print 'Score:',self.state.score
