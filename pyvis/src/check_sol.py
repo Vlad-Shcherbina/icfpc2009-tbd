@@ -3,7 +3,7 @@ import sys
 import struct
 from pprint import pprint
 
-from vm import teamID,createScenario,getSolution
+from vminterface import teamID,createScenario,getSolution
 
 from compiled_vm import CompiledVMConstructor
 from python_vm import PythonVMConstructor 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         print 'Solution file corrupted. '
         print 'Probably you ignored nonpositive score warning when saving this solution'
     
-    controls = dict((k,v) for k,v in controls.items())
+    controls = dict((k,v) for k,v in controls.items() if v!=[0.0,0.0])
     print 'controls =\\'
     pprint(controls)
 
@@ -59,7 +59,8 @@ if __name__ == '__main__':
     steps = vm.executeSteps(timeStamp-1, controls) + 1
     
     if steps != timeStamp:
-        print "The machine aborted prematurely after {0} steps!".format(steps) 
+        print "The machine aborted prematurely after {0} steps!".format(steps)
+         
     print 'SCORE IS',vm.state.score
     
     

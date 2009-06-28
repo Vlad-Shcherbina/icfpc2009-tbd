@@ -65,6 +65,21 @@ class VMInterface(object):
         return steps
 
     def executeSteps(self, steps, controls):
+        stepsMade = 0
+        t = self.state.time
+        endT = t+steps
+        while True:
+            idle = 0
+            while t < endT and t not in controls:
+                t += 1
+                idle += 1
+            stepsMade += self.run(idle)
+            if t == endT:
+                return stepsMade
+            stepsMade += self.run(1,*controls[t])
+            t += 1
+
+    def executeStepsOld(self, steps, controls):
         if self.state.score != 0.0: return 0
         time = self.currentStep
         prevTime = time
@@ -74,7 +89,7 @@ class VMInterface(object):
                 # execute up to this point
                 dt = time - prevTime
                 if dt > 0:
-                    executed = llvm.run(dt, self.ax, self.ay)
+                    executed = self.llvm.run(dt, self.ax, self.ay)
                     prevTime += executed
                     if executed != dt:
                         break
@@ -82,7 +97,7 @@ class VMInterface(object):
         executed = prevTime - self.currentStep
         dt = steps - executed
         if dt > 0:
-            executed = llvm.run(dt, self.ax, self.ay)
+            executed = self.llvm.run(dt, self.ax, self.ay)
             prevTime += executed
         executed = prevTime - self.currentStep
         self.currentStep = prevTime
@@ -127,11 +142,12 @@ class VMInterface(object):
         print 'Fuel:',self.state.fuel
         print 'coords: ',self.state.objects[0]
 
-def createScenario(fileName, scenario, vmconstructor):
+def createScenario(vmconstructor,fileName, scenario):
     "returns vm"
     ctor = vmconstructor(fileName)
     vm = ctor.newvm(scenario)
     vmi = VMInterface(vm)
+    vmi.state.scenario = scenario
     vmi.run() # run one step
     assert vmi.state.time == 1
     return vmi
