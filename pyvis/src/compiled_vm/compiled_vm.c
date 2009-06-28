@@ -13,7 +13,7 @@ __declspec(dllexport) int run(int steps, double i2, double i3, double i16000, do
 	{
 		#include "compiled_vm_statements.inc"
 		
-		if (output[0] != 0)
+		if (output[0] != 0.0)
 		{
 			cnt++;
 			break;

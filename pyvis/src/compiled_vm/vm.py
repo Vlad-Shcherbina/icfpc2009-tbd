@@ -16,7 +16,7 @@ class CompiledVM(object):
         self.memory = memory
         self.scenario = scenario
     
-    def run(self, steps, ax, ay):
+    def run(self, steps = 1, ax = 0.0, ay = 0.0):
         return self.vmwrapper.run(steps, ax, ay, self.scenario, self.memory)
 
     def getoutput(self):
@@ -30,14 +30,14 @@ class CompiledVM(object):
             print "%04d: %f" % (i, d)
             
     def __copy__(self):
-        newmem = self.vmwrapper.clonememory(self.memory)
-        return CompiledVM(self.parent, self.scenario, newmem)
+        return self.clone()
     
     def __deepcopy__(self, d):
-        return self.__copy__() # because that's how deep it ever gets!
+        return self.clone() # because that's how deep it ever gets!
 
     def clone(self):
-        return copy(self)
+        newmem = self.vmwrapper.clonememory(self.memory)
+        return CompiledVM(self.parent, self.scenario, newmem)
         
 @contextmanager
 def changedir(dir = None, file = None):
@@ -82,11 +82,11 @@ class CompiledVMConstructor(object):
 
 
 if __name__ == '__main__':
-    constructor = CompiledVMConstructor('../../../task/bin4.obf')
-    vm = constructor.newvm(4001.0)
+    constructor = CompiledVMConstructor('../../../task/bin1.obf')
+    vm = constructor.newvm(1001.0)
     
     clock = time.clock()   
-    print vm.run(3000000, 0, 0)
+    print vm.run(10000, 0, 0)
     print time.clock() - clock
     print list(vm.vmwrapper.output)
     vm.print_memory_map()
