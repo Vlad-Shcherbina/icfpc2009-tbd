@@ -47,6 +47,7 @@ class State(object):
         'fuel2', # on fuel station
         'collected', # list of bools
         'moon', # moon also listed in 'objects' last
+        'cobjects', # objects coords as complex numbers
         )
     def haveMoon(self):
         return self.scenario >= 4001
