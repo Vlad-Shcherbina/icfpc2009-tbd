@@ -141,8 +141,8 @@ class PythonVMConstructor(object):
 
 
 if __name__ == '__main__':
-    constructor = PythonVMConstructor('../../task/bin1.obf')
-    vm = constructor.newvm(1001.0)
+    constructor = PythonVMConstructor('../../task/bin4.obf')
+    vm = constructor.newvm(4001.0)
     
     clock = time.clock()   
     print vm.run(10000, 0, 0)

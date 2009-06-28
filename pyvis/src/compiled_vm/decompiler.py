@@ -1,7 +1,6 @@
 import struct
 import itertools
 from instructions import asm, Operation
-from collections import namedtuple
 
 MAX_OUT_PORTS = 0x70
 
@@ -244,6 +243,16 @@ def decode_src(buf):
 
 vm_description = namedtuple('vm_description', 
     'declarations statements memorysize outputsize memory memorymap')
+
+class vm_description(object):
+    def __init__(self, declarations, statements, memorysize, outputsize, memory, memorymap):
+        self.declarations = declarations
+        self.statements = statements
+        self.memorysize = memorysize
+        self.outputsize = outputsize
+        self.memory = memory
+        self.memorymap = memorymap
+
  
 def process_file(filename):
     src = open(filename, 'rb').read()
