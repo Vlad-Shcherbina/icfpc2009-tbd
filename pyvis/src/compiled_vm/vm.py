@@ -9,27 +9,28 @@ from contextlib import contextmanager
 from copy import copy, deepcopy
 
 class CompiledVM(object):
-    def __init__(self, parent, scenario, memory = None):
+    def __init__(self, parent, scenario, state = None):
         self.parent = parent
         self.vmwrapper = parent.vmwrapper
         self.vm_desc = parent.vm_desc
-        if memory is None:
-            memory = self.vmwrapper.newmemory(self.vm_desc.memory)
-        self.memory = memory
+        if state is None:
+            state = self.vmwrapper.newstate(self.vm_desc.memory)
+        self.memory, self.output = state
         self.scenario = scenario
     
     def run(self, steps = 1, ax = 0.0, ay = 0.0):
-        return self.vmwrapper.run(steps, ax, ay, self.scenario, self.memory)
+        return self.vmwrapper.run(steps, ax, ay, self.scenario, self.memory, self.output)
 
     def getoutput(self):
-        return self.vmwrapper.output
+        return self.output
 
     def clearoutput(self):
-        self.vmwrapper.output.clear()
+        self.output.clear()
     
     
     def reset(self):
         self.memory[:] = self.vm_desc.memory
+        self.output.clear()
     
     def print_memory_map(self):
         for i, d in zip(self.vm_desc.memorymap, self.memory):
@@ -42,8 +43,8 @@ class CompiledVM(object):
         return self.clone() # because that's how deep it ever gets!
 
     def clone(self):
-        newmem = self.vmwrapper.clonememory(self.memory)
-        return CompiledVM(self.parent, self.scenario, newmem)
+        state = self.vmwrapper.clonestate(self.memory, self.output)
+        return CompiledVM(self.parent, self.scenario, state)
         
 @contextmanager
 def changedir(dir = None, file = None):
@@ -74,7 +75,8 @@ class CompiledVMConstructor(object):
                 sources = [inspect.getsourcefile(CompiledVMConstructor),
                            inspect.getsourcefile(compiler),
                            inspect.getsourcefile(decompiler),
-                           inspect.getsourcefile(decompiler.asm)]
+                           inspect.getsourcefile(decompiler.asm),
+                           'compiled_vm.c']
                 sourcetime = max([os.path.getmtime(s) for s in sources] + [sourcetime])  
                 if sourcetime < filetime:
                     print 'Skipping rebuild'
@@ -94,7 +96,7 @@ if __name__ == '__main__':
     clock = time.clock()   
     print vm.run(10000, 0, 0)
     print time.clock() - clock
-    print list(vm.vmwrapper.output)
+    print list(vm.output)
     vm.print_memory_map()
     
     

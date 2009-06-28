@@ -9,11 +9,8 @@ __declspec(dllexport) int run(int steps, double i2, double i3, double i16000, do
 	int cnt = 0;
 	#include "compiled_vm_declarations.inc"
 	
-	for (cnt = 0; cnt < steps; cnt++)
+	for (cnt = 0; cnt < steps && output[0] == 0.0; cnt++)
 	{
-		if (output[0] != 0.0)
-			break;
-			
 		#include "compiled_vm_statements.inc"
 	}
 	return cnt;

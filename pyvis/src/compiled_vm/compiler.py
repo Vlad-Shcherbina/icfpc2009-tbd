@@ -34,19 +34,20 @@ class vmwrapper(object):
         self.rawrun = getattr(self.lib, "run")
         self.memory_type = c_double * vm_desc.memorysize
         self.output_type = c_double * vm_desc.outputsize
-        self.output = self.output_type()
         
         self.rawrun.restype = c_int
         self.rawrun.argtypes = [c_int, c_double, c_double, c_double, 
                                 self.memory_type, self.output_type]
         
-    def run(self, steps, i2, i3, i16000, memory):
-        return self.rawrun(steps, i2, i3, i16000, memory, self.output)
+    def run(self, steps, i2, i3, i16000, memory, output):
+        return self.rawrun(steps, i2, i3, i16000, memory, output)
     
-    def newmemory(self, iter = None):
-        return self.memory_type(*iter)
+    def newstate(self, iter = None):
+        return (self.memory_type(*iter), self.output_type())
     
-    def clonememory(self, memory):
-        res = self.memory_type()
-        memmove(res, memory, len(res) * 8)
-   
+    def clonestate(self, memory, output):
+        mem = self.memory_type()
+        memmove(mem, memory, len(res) * 8)
+        out = self.output_type()
+        memmove(out, output, len(out) * 8)
+        return (mem, out)
