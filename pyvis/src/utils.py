@@ -14,3 +14,5 @@ def hohmann(r1,r2):
     interval = periodByRadius(0.5*(r1+r2))/2
     return dv1,dv2,interval
     
+def complToPair(a):
+    return a.real,a.imag
