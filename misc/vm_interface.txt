@@ -1,7 +1,12 @@
 При использовании виртуальной машины рекомендуется ограничиться следующими операциями.
 
+from vminterface import createScenario,getSolution
+
+from compiled_vm import CompiledVMConstructor
+from python_vm import PythonVMConstructor 
+
 scenario = 1001
-vm = createScenario("shit1.obf",scenario)
+vm = createScenario(CompiledVMConstructor,"shit1.obf",scenario)
 # при этом один шаг уже выполнен
 assert vm.state.time == 1
 
