@@ -23,12 +23,12 @@ def traceCoords(vm,control,index,t1,t2):
     result = []
     steps = vm.executeSteps(t1-t0,control)
     if steps < t1-t0:
-        raise ImproverFailure()
+        raise ImproverFailure("crashed at %s"%(vm.state.time))
     for i in range(t1,t2):
         result.append(vm.state.objects[index])
         steps = vm.executeSteps(1,control)
         if steps != 1:
-            raise ImproverFailure()
+            raise ImproverFailure("crashed at %s"%(vm.state.time))
     return result
 
 def updateControls(controls,t,dvx,dvy):
@@ -107,8 +107,8 @@ def tryImprove(vm,index,controls,freePoints,t1,t2):
                 #print c
                 newBadness = calcBadness(vm,index,c,t1,t2)
                 attempts.append((newBadness,c))
-            except ImproverFailure:
-                pass
+            except ImproverFailure as e:
+                print e
         if len(attempts) == 0:
             raise ImproverFailure("all improvement attempts crashed")
         attempts.sort()
