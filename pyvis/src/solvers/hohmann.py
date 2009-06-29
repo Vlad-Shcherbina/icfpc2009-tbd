@@ -60,22 +60,12 @@ if __name__ == '__main__':
     r1 = vm.state.r
     r2 = vm.state.radius
     
-    printStats(vm)
+    spin = ht.obtainSpin(vm)    
     
-    
-    oldStyle = 1
-    
-    if oldStyle:
-        for r in fuelBurnOrbits(r1, r2, vm.state.fuel):
-            ht.transfer(r1, r).performTransfer(vm)
-            ht.transfer(r, r1).performTransfer(vm)
-        ht.transfer(r1, r2).performTransfer(vm)
-    else:
-        spin = ht.obtainSpin(vm)
-        for r in fuelBurnOrbits(r1, r2, vm.state.fuel):
-            vm.executeSteps(*ht.transferControl(r1, r, vm.state.objects[0], spin, vm.state.time))
-            vm.executeSteps(*ht.transferControl(r, r1, vm.state.objects[0], spin, vm.state.time))
-        vm.executeSteps(*ht.transferControl(r1, r2, vm.state.objects[0], spin, vm.state.time))
+    for r in fuelBurnOrbits(r1, r2, vm.state.fuel):
+        ht.performTransfer(vm, r, spin)
+        ht.performTransfer(vm, r1, spin)
+    ht.performTransfer(vm, r2, spin)
     
     while vm.state.score == 0.0:
             vm.execute()

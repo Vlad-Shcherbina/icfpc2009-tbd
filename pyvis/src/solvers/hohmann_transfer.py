@@ -4,8 +4,11 @@ from orbital import mu, getSpin
 dV1 = lambda r1, r2: sqrt(mu/r1) * (sqrt(2*r2/(r1+r2)) - 1)
 dV2 = lambda r1, r2: sqrt(mu/r2) * (1 - sqrt(2*r1/(r1+r2)))
 
+
+#### DEPRECATED
 class transfer:
     def __init__(self, r1, r2, spin=0):
+        assert 0, "DEPRECATED: Use the hohmann_transfer.performTransfer function"
         self.r1 = r1
         self.r2 = r2
         self.spin = spin
@@ -36,7 +39,6 @@ class transfer:
 
             vm.changeSpeed(*firstPulse(self.r1, self.r2, sx, sy, self.spin))
 
-            #self.lastR = r
             self.timeLeft = int(round(timeRequired(self.r1, self.r2)))
             self.state = 2
             return 0
@@ -47,7 +49,7 @@ class transfer:
             self.timeLeft -= 1
             
             if self.timeLeft == 0:
-                vm.changeSpeed(*secondPulseX(self.r1, self.r2, sx, sy, self.spin))
+                vm.changeSpeed(*secondPulse(self.r1, self.r2, sx, sy, self.spin))
                 self.state = 3
                 return self.spin
             else:
@@ -62,8 +64,38 @@ class transfer:
             completed = self.step(vm)
             vm.execute()
         return completed
+
+
+
+
+def performTransfer(vm, r2, spin=0):
+    if spin == 0: spin = obtainSpin(vm)
+    x, y = vm.state.objects[0]
+    r1 = sqrt(x**2 + y**2)
+    nsteps = int(round(timeRequired(r1, r2)))
+    vm.executeSteps(nsteps, {vm.state.time: firstPulse(r1, r2, x, y, spin)})
+    x, y = vm.state.objects[0]
+    vm.executeSteps(1, {vm.state.time: secondPulse(r1, r2, x, y, spin)})
         
+
+def firstPulse(r1, r2, x, y, spin):
+    dV = spin * dV1(r1, r2)
+    dVx = -y * dV / r1
+    dVy =  x * dV / r1
+    return (dVx, dVy)
     
+def secondPulse(r1, r2, x, y, spin):
+    """ (x,y) is the position at the end of the jump """
+    dV = spin * dV2(r1, r2)
+    dVx = -y * dV / r2
+    dVy = x * dV / r2
+    return (dVx, dVy)
+
+def obtainSpin(vm):
+    x1, y1 = vm.state.objects[0]
+    vm.executeSteps(1, {})
+    x2, y2 = vm.state.objects[0]
+    return getSpin(x1, y1, x2, y2)
 
 def predictPosition(sx, sy, r2):
     """ Predict the coordinates after a Hohmann transfer from the current orbit to r2. """
@@ -87,20 +119,11 @@ def integerTimeApprox(r1, r2):
     tint = round(t)
     return radiusFromTime(r1, tint)
 
-def firstPulse(r1, r2, x, y, spin):
-    dV = spin * dV1(r1, r2)
-    dVx = -y * dV / r1
-    dVy =  x * dV / r1
-    return (dVx, dVy)
-    
-def secondPulseX(r1, r2, x, y, spin):
-    """ (x,y) is the position at the end of the jump """
-    dV = spin * dV2(r1, r2)
-    dVx = -y * dV / r2
-    dVy = x * dV / r2
-    return (dVx, dVy)
 
-def secondPulse(r1, r2, x, y, spin):
+
+# the following are currently not used as the error has proven to be too large
+
+def secondPulseX(r1, r2, x, y, spin):
     """ (x,y) is the position at the beginning of the jump """
     dV = spin * dV2(r1, r2)
     dVx = y * dV / r1
@@ -111,13 +134,6 @@ def transferControl(r1, r2, coords, spin, tstart=1):
     x, y = coords
     nsteps = int(round(timeRequired(r1, r2)))
     
-    print tstart+nsteps, secondPulse(r1, r2, x, y, spin)
     return (nsteps+2, {tstart: firstPulse(r1, r2, x, y, spin), \
-                        tstart+nsteps: secondPulse(r1, r2, x, y, spin)})
-    
-def obtainSpin(vm):
-    x1, y1 = vm.state.objects[0]
-    vm.executeSteps(1, {})
-    x2, y2 = vm.state.objects[0]
-    return getSpin(x1, y1, x2, y2)
+                        tstart+nsteps: secondPulseX(r1, r2, x, y, spin)})
     
