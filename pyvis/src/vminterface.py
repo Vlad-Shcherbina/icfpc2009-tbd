@@ -86,6 +86,7 @@ class VMInterface(object):
 
     def executeSteps(self, steps, controls = {}):
         assert isinstance(steps,int)
+        assert steps>=0
         t = self.time
         base = t
         endT = t + steps
