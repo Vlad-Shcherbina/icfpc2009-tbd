@@ -12,22 +12,35 @@ def printStats(vm):
     #print "Fuel: %f; Self: %s; Target: %s" % (vm.outPort[1],  str(selfCoords(vm)), str(targetCoords(vm)))
     sx, sy = vm.state.objects[0]
     tx, ty = vm.state.objects[1]
-    tR = sqrt(tx**2+ty**2)
+    tR = o.vLen((tx, ty))
     sa = atan2(sy,sx)/pi
     ta = atan2(ty,tx)/pi
-    dist = sqrt((sx-tx)**2+(sy-ty)**2)
+    dist = o.vLen((sx-tx, sy-ty))
     print "Fuel: %f; Self: R: %s a: %s; Target R: %s a:%s; Dist: %s" % (vm.state.fuel, vm.state.r, sa, tR, ta, dist) 
 
 def projectedDistance(sx, sy, tx, ty, tspin):
     """ How far away from target we will end up if we transfer now. """
-    r1 = sqrt(sx**2 + sy**2)
-    r2 = sqrt(tx**2 + ty**2)
+    r1 = o.vLen((sx, sy))
+    r2 = o.vLen((tx, ty))
     t = ht.timeRequired(r1, r2)
     txnew, tynew = o.newPosition(tx, ty, tspin, t)
     sxnew, synew = ht.predictPosition(sx, sy, r2)
     
-    return sqrt((sxnew - txnew)**2 + (synew - tynew)**2)
+    return o.vLen((sxnew - txnew, synew-tynew))
     
+def obtainSpins(vm):
+    sx1, sy1 = vm.state.objects[0]
+    tx1, ty1 = vm.state.objects[1]
+
+    vm.executeSteps(1, {})
+    
+    sx2, sy2 = vm.state.objects[0]
+    tx2, ty2 = vm.state.objects[1]
+    
+    sspin = o.getSpin(sx1, sy1, sx2, sy2)
+    tspin = o.getSpin(tx1, ty1, tx2, ty2)
+    return (sspin, tspin)
+
 if __name__ == '__main__':
     assert len(sys.argv) == 2
     assert 1 <= int(sys.argv[1]) <= 4
@@ -36,24 +49,13 @@ if __name__ == '__main__':
     vm = VM.createScenario("../../../task/bin2.obf", scenario)
  
     # gather observational data
-    sx1, sy1 = vm.state.objects[0]
-    tx1, ty1 = vm.state.objects[1]
-
+    sspin, tspin = obtainSpins(vm)
     r1 = vm.state.r
-    r2 = sqrt(tx1**2 + ty1**2)
-    
-    vm.execute()
-    
-    sx2, sy2 = vm.state.objects[0]
-    tx2, ty2 = vm.state.objects[1]
-    
-    sspin = o.getSpin(sx1, sy1, sx2, sy2)
-    tspin = o.getSpin(tx1, ty1, tx2, ty2)
+    r2 = o.vLen(vm.state.objects[1])
     
     assert (sspin == tspin)     # fuck me if I know how to solve this otherwise
     
     while vm.state.score == 0.0:
-        #printStats(vm)
         sx, sy = vm.state.objects[0]
         tx, ty = vm.state.objects[1]
         prsx, prsy = ht.predictPosition(sx, sy, r2)
@@ -62,14 +64,10 @@ if __name__ == '__main__':
         if projectedDistance(sx, sy, tx, ty, tspin) < 1000:
             break
         
-        vm.execute()
+        vm.executeSteps(1,{})
 
-    printStats(vm)
-#    print prsx, prsy
+    ht.performTransfer(vm, r2, sspin)
 
-    ht.transfer(r1, r2, sspin).performTransfer(vm)
-
-#    printStats(vm)    
     while vm.state.score == 0.0:
         vm.execute()
 
