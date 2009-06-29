@@ -10,9 +10,9 @@ from math import *
 from pprint import pprint
 
 
-from utils import *
 from vminterface import createScenario,getSolution
 from improver import *
+from utils_for_two_three import *
 
 name = 'pyglut template'
 
