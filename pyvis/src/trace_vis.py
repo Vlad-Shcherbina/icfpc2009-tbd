@@ -11,7 +11,7 @@ from pprint import pprint
 
 
 from utils import *
-from vminterface import createScenario,getSolution
+from vminterface import createScenario,getSolution,HistoryVM
 from improver import *
 
 name = 'pyglut template'
@@ -125,7 +125,7 @@ def getSwitchings(vm,index,lookAhead=3000000):
             continue
         
         s2 = coords[index]
-        hohTime = hohmann(s1,s2)[2]
+        hohTime = hohmannParameters(s1,s2)[2]
         
         neededPos = -s2/abs(s2)*abs(s1)
         ourPos = s1*cmath.exp(omega1*(t-hohTime-t0)*rotDir)
@@ -140,59 +140,57 @@ def getSwitchings(vm,index,lookAhead=3000000):
         prevT = t
     return switchings
 
-def tryCollect(vm,controls,switch,timeCost):
+def tryCollect(hvm,switch,timeCost):
     t,r2,index = switch
     
     if r2>1e9:
         return (-1e20,None,None,None)
     
-    vm,controls,expectedTime = performHohmann(vm,controls,t,r2)
+    hvm,controls,expectedTime = performHohmann(hvm,t,r2)
     
-    fu = fuelUse(controls,t0=vm.state.time)
+    fu = fuelUse(controls)
     
-    if fu>vm.state.fuel+500:
+    if fu > hvm.state.fuel+20:
         return (-1e20,None,None,None)
     
     score = -75.0/24e6*(expectedTime-t)*timeCost-25*fu/totalFuel
     if index >= 2 and index < 12+2:
         score += 75*(1.0/12)
     
-    return (8*score,vm,controls,index,expectedTime)
+    return (8*score,hvm,controls,index,expectedTime)
     
 
-def collect(vm,controls,timeCost):
-    vm = vm.clone()
-    vm,controls = ensureCircularOrbit(vm,controls)
-    
-    vm.executeSteps(1, controls)
+def collect(hvm,timeCost):
+    hvm = hvm.clone()
+    hvm = ensureCircularOrbit(hvm)
     
     switchings = []
     for index in range(15):
-        if needCollect(vm,index):
-            switchings += getSwitchings(vm,index,lookAhead=500000)
+        if needCollect(hvm,index):
+            switchings += getSwitchings(hvm.vm,index,lookAhead=500000)
     print 'got',len(switchings),'switchings'
     switchings.sort()
     switchings = switchings[:10]
     
-    tries = [tryCollect(vm,controls,sw,timeCost) for sw in switchings]
+    tries = [tryCollect(hvm,sw,timeCost) for sw in switchings]
     tries.sort()
     tries.reverse()
         
-    sc,vm,controls,index,expectedTime = tries[0]
+    sc,hvm,controls,index,expectedTime = tries[0]
     print index
     
     print 'score estimate',sc
     
     try:
-        controls = tryImprove(vm,index,controls,
-                              [vm.state.time],
+        controls = tryImprove(hvm.vm,index,controls,
+                              [hvm.state.time],
                               expectedTime,expectedTime+1)
     except ImproverFailure as e:
         print e
         
-    vm.executeSteps(expectedTime-vm.state.time+1,controls)
-    print 'fuel remaining',vm.state.fuel
-    return vm,controls
+    hvm.executeSteps(expectedTime-hvm.state.time+1,controls)
+    print 'fuel remaining',hvm.state.fuel
+    return hvm
 
 
 def main():
@@ -222,6 +220,7 @@ def main():
         
     vm = createScenario('compiled','../../task/bin4.obf',scenario)
     vm0 = vm.clone()
+    
     print 'fuel',vm.state.fuel
     totalFuel = vm.state.fuel+vm.state.fuel2
 
@@ -231,17 +230,17 @@ def main():
     
     history = getHistory(vm,step,maxTime)[:maxTime//step]
     
-    controls = {}
+    hvm = HistoryVM(vm)
     
-    vm1 = vm.clone()
-    vm1,controls = collect(vm1,controls,timeCost=2)
-    vm1,controls = collect(vm1,controls,timeCost=1)
-    vm1,controls = collect(vm1,controls,timeCost=1)
+    hvm = collect(hvm,timeCost=2)
+    hvm = collect(hvm,timeCost=1)
+    hvm = collect(hvm,timeCost=1)
     
     print 'final controls'
+    controls = hvm.commands
     pprint(sorted(controls.items()))
     
-    endTime = vm1.state.time
+    endTime = hvm.state.time
     
     #print controls
     vm = vm0.clone()

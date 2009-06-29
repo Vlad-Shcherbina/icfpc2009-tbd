@@ -16,7 +16,7 @@ def speedByRadius(r):
     r = abs(r)
     return r*(2*pi)/periodByRadius(r)
 
-def hohmann(r1,r2):
+def hohmannParameters(r1,r2):
     """return (dv1,dv2,interval)"""
     r1 = abs(r1)
     r2 = abs(r2)
@@ -25,24 +25,23 @@ def hohmann(r1,r2):
     interval = int(round(periodByRadius(0.5*(r1+r2))/2))
     return dv1,dv2,interval
 
-def performHohmann(vm,controls,t,r2):
-    #return (vm,controls,expectedTime)
+def performHohmann(hvm,t,r2):
+    #return (hvm,controls,expectedTime)
     
-    vm = vm.clone()
-    vm.executeSteps(t-vm.state.time,controls)
+    hvm = hvm.clone()
+    hvm.executeSteps(t-hvm.state.time)
     
-    s1 = vm.state.cobjects[0]
-    v1 = getObjCSpeeds(vm)[0]
+    s1 = hvm.state.cobjects[0]
+    v1 = getObjCSpeeds(hvm)[0]
     rotDir = rotationDir(s1,v1)
     
-    dv1,dv2,interval = hohmann(s1,r2)
+    dv1,dv2,interval = hohmannParameters(s1,r2)
     
     c = {}
     c[t] = complToPair(dv1*s1/abs(s1)*rotDir)
     c[t+interval] = complToPair(-dv2*s1/abs(s1)*rotDir)
     
-    controls = combineControls(controls,c)
-    return (vm,controls,t+interval)
+    return (hvm,c,t+interval)
     
 
 def gravForce(cobj,cmoon=None):
@@ -89,16 +88,14 @@ def rotationDir(s,v):
     else:
         return -1j
     
-def ensureCircularOrbit(vm,controls):
-    vm = vm.clone()
-    assert vm.state.time not in controls
-    speeds = getObjCSpeeds(vm)        
-    s = vm.state.cobjects[0]
+def ensureCircularOrbit(hvm):
+    hvm = hvm.clone()
+    speeds = getObjCSpeeds(hvm)        
+    s = hvm.state.cobjects[0]
     v0 = speeds[0]
     v = (s/abs(s))*rotationDir(s,v0)*speedByRadius(s)
-    controls = combineControls(controls,{vm.state.time:complToPair(v-v0)})
-    vm.executeSteps(1,controls)
-    return vm,controls
+    hvm.executeSteps(1,{hvm.state.time:complToPair(v-v0)})
+    return hvm
 
 def combineControls(controls1,controls2):
     result = deepcopy(controls1)
