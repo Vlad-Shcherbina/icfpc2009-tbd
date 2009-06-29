@@ -205,7 +205,7 @@ def main():
     
     with open('solutions/hoh_sol%s_%s'%(scenario,int(vm.state.score)),
               'wb') as fout:
-        getSolution(scenario,vm.state.time,controls)
+        fout.write(getSolution(scenario,vm.state.time,controls))
     
     
     vm = vm0
