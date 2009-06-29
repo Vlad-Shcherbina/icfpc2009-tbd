@@ -48,8 +48,8 @@ def drawStates(states,colorScheme=standartColorScheme):
         glColor3f(*colorScheme[i])
         glBegin(GL_LINE_STRIP)
         for state in states:
-            if i>=2 and i<2+12 and state.collected[i-2]:
-                continue
+            #if i>=2 and i<2+12 and state.collected[i-2]:
+            #    continue
             x,y = state.objects[i]
             glVertex2f(x,y)
         glEnd()
@@ -82,7 +82,7 @@ def display():
     glColor3f(0,0.3,0.6)
     circle(0,0,6.357e06)
 
-    drawStates(decimateList(states))
+    drawStates(decimateList(states,0.5))
 
     glutSwapBuffers()
     glutPostRedisplay()
@@ -159,7 +159,41 @@ def tryCollect(vm,controls,switch,timeCost):
     
     return (8*score,vm,controls,index,expectedTime)
     
+
+def collect(vm,controls,timeCost):
+    vm = vm.clone()
+    vm,controls = ensureCircularOrbit(vm,controls)
     
+    vm.executeSteps(1, controls)
+    
+    switchings = []
+    for index in range(15):
+        if needCollect(vm,index):
+            switchings += getSwitchings(vm,index,lookAhead=500000)
+    print 'got',len(switchings),'switchings'
+    switchings.sort()
+    switchings = switchings[:10]
+    
+    tries = [tryCollect(vm,controls,sw,timeCost) for sw in switchings]
+    tries.sort()
+    tries.reverse()
+        
+    sc,vm,controls,index,expectedTime = tries[0]
+    print index
+    
+    print 'score estimate',sc
+    
+    try:
+        controls = tryImprove(vm,index,controls,
+                              [vm.state.time],
+                              expectedTime,expectedTime+1)
+    except ImproverFailure as e:
+        print e
+        
+    vm.executeSteps(expectedTime-vm.state.time+1,controls)
+    print 'fuel remaining',vm.state.fuel
+    return vm,controls
+
 
 def main():
     global winW,winH
@@ -179,8 +213,15 @@ def main():
     glutKeyboardFunc(keyboard)
     glutIdleFunc(idle)
 
-    scenario = 4001
+    if len(sys.argv) == 2:
+        scenario = int(sys.argv[1])
+        noVis = True
+    else:
+        scenario = 4001
+        noVis = False
+        
     vm = createScenario('compiled','../../task/bin4.obf',scenario)
+    vm0 = vm.clone()
     print 'fuel',vm.state.fuel
     totalFuel = vm.state.fuel+vm.state.fuel2
 
@@ -190,59 +231,46 @@ def main():
     
     history = getHistory(vm,step,maxTime)[:maxTime//step]
     
-    controls = ensureCircularOrbit(vm)
-    vm.executeSteps(1, controls)
+    controls = {}
     
-    switchings = []
-    for index in range(15):
-        if needCollect(vm,index):
-            switchings += getSwitchings(vm,index,lookAhead=500000)
-    print 'got',len(switchings),'switchings'
-    switchings.sort()
-    switchings = switchings[:10]
+    vm1 = vm.clone()
+    vm1,controls = collect(vm1,controls,timeCost=2)
+    vm1,controls = collect(vm1,controls,timeCost=1)
+    vm1,controls = collect(vm1,controls,timeCost=1)
     
-    tries = [tryCollect(vm,controls,sw,timeCost=1) for sw in switchings]
-    tries.sort()
-    tries.reverse()
-    pprint(tries[0])
-        
-    sc,vm1,controls,index,expectedTime = tries[0]
+    print 'final controls'
+    pprint(sorted(controls.items()))
     
-    print 'score estimate',sc
-    
-    try:
-        controls = tryImprove(vm1,index,controls,
-                              [vm1.state.time],
-                              expectedTime,expectedTime+1)
-    except ImproverFailure as e:
-        print e
-    
-    #pprint(switchings)
-    
+    endTime = vm1.state.time
     
     #print controls
-    vm0 = vm.clone()
+    vm = vm0.clone()
+    print 'evaluating score...'
     vm.executeSteps(2000000,controls)
+    print 'collected',vm.state.collected
     print 'fuel =',vm.state.fuel
     print 'SCORE = ',vm.state.score
     
     with open('solutions/sol%s_%s'%(scenario,int(vm.state.score)),
               'wb') as fout:
-        getSolution(scenario,vm.state.time,controls)
+        fout.write(getSolution(scenario,vm.state.time,controls))
     
-    
-    vm = vm0
+    if noVis:
+        sys.exit()
+        
+        
+    vm = vm0.clone()
     states = []
-    for i in range(1,expectedTime+1000,20):
+    for i in range(1,endTime,50):
         states.append(deepcopy(vm.state))
-        vm.executeSteps(20,controls)
+        vm.executeSteps(50,controls)
     
         
     scale = max(sqrt(x*x+y*y) 
                 for state in states 
                 for x,y in state.objects)
 
-    scale = min(scale,3e7)
+    #scale = min(scale,5e7)
     
     glutMainLoop()
 
