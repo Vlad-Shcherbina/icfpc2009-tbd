@@ -52,8 +52,10 @@ def gravForce(cobj,cmoon=None):
         return 0
     f = -mu*cobj/(r*r*r)
     if cmoon is not None:
-        s = cobj-moon
+        s = cobj-cmoon
         r = abs(s)
+        if r<1.0:
+            return f
         f -= moonMu*s/(r*r*r) 
     return f
     
@@ -115,5 +117,5 @@ def getHistory(vm,step,maxTime=30000000):
     print 'ok'
     return history
 
-def fuelUse(controls):
-    return sum(abs(complex(*c)) for c in controls.values())
+def fuelUse(controls,t0=1):
+    return sum(abs(complex(*c)) for t,c in controls.items() if t>=t0)
