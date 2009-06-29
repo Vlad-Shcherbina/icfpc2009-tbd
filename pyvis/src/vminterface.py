@@ -168,7 +168,7 @@ class HistoryVM(object):
         t1 = self.vm.state.time
         for t in controls:
             if t0 <= t < t1:
-                assert t in self.commands
+                assert t not in self.commands
                 self.commands[t] = controls[t]
         return r
     
