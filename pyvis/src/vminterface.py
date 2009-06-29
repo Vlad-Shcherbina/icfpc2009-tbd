@@ -4,9 +4,11 @@ import psyco
 psyco.full()
 
 from copy import copy, deepcopy
-
 import struct
 from math import *
+
+
+from utils import *
 
 
 # this is the best place to disable stdout buffering
@@ -29,6 +31,7 @@ sys.stdout=_Unbuffered(sys.stdout)
 __all__ = [
     "teamID",
     "createScenario",
+    "historyVM",
     "getSolution",
     "parseSolution",
     "vmconstructors",
@@ -149,6 +152,27 @@ class VMInterface(object):
         print 'Score:',self.state.score
         print 'Fuel:',self.state.fuel
         print 'coords: ',self.state.objects[0]
+
+class HistoryVM(object):
+    __slots__ = ('vm','commands','state')
+    def __init__(self,vm,commands={}):
+        self.vm = vm
+        self.commands = commands
+        self.state = self.vm.state
+    def clone(self):
+        return deepcopy(self)
+    def executeSteps(self,steps,controls={}):
+        t0 = self.vm.state.time
+        r = self.vm.executeSteps(steps,controls)
+        assert self.state is self.vm.state
+        t1 = self.vm.state.time
+        for t in controls:
+            if t0 <= t < t1:
+                assert t in self.commands
+                self.commands[t] = controls[t]
+        return r
+    
+        
 
 def createScenario(vmconstructor,fileName, scenario):
     "returns vm"
