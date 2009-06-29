@@ -47,7 +47,7 @@ class transfer:
             self.timeLeft -= 1
             
             if self.timeLeft == 0:
-                vm.changeSpeed(*secondPulse(self.r1, self.r2, sx, sy, self.spin))
+                vm.changeSpeed(*secondPulseX(self.r1, self.r2, sx, sy, self.spin))
                 self.state = 3
                 return self.spin
             else:
@@ -93,20 +93,27 @@ def firstPulse(r1, r2, x, y, spin):
     dVy =  x * dV / r1
     return (dVx, dVy)
     
-def secondPulse(r1, r2, x, y, spin):
+def secondPulseX(r1, r2, x, y, spin):
+    """ (x,y) is the position at the end of the jump """
     dV = spin * dV2(r1, r2)
     dVx = -y * dV / r2
-    dVy =  x * dV / r2
+    dVy = x * dV / r2
     return (dVx, dVy)
 
-# this should not be used due to the large error of predictPosition
+def secondPulse(r1, r2, x, y, spin):
+    """ (x,y) is the position at the beginning of the jump """
+    dV = spin * dV2(r1, r2)
+    dVx = y * dV / r1
+    dVy = -x * dV / r1
+    return (dVx, dVy)
+    
 def transferControl(r1, r2, coords, spin, tstart=1):
     x, y = coords
     nsteps = int(round(timeRequired(r1, r2)))
-    prx, pry = predictPosition(x, y, r2)
     
-    return (nsteps+1, {tstart: firstPulse(r1, r2, x, y, spin), \
-                        tstart+nsteps: secondPulse(r1, r2, prx, pry, spin)})
+    print tstart+nsteps, secondPulse(r1, r2, x, y, spin)
+    return (nsteps+2, {tstart: firstPulse(r1, r2, x, y, spin), \
+                        tstart+nsteps: secondPulse(r1, r2, x, y, spin)})
     
 def obtainSpin(vm):
     x1, y1 = vm.state.objects[0]
