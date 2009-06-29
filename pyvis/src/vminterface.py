@@ -131,7 +131,7 @@ class VMInterface(object):
             assert len(self.state.objects)==2
             for i in range(12):
                 self.state.objects.append((x+output[3*i+7],y+output[3*i+8]))
-                self.state.collected.append(output[3*i+7] == 1.0)
+                self.state.collected.append(output[3*i+9] == 1.0)
             self.state.moon = (x+output[0x64],y+output[0x65])
             self.state.objects.append(self.state.moon)
         else:
