@@ -56,7 +56,9 @@ class State(object):
         'objects', # list of coordiante pairs. First pair - our sat, second - fuel station (if present)
         'radius', # for hohmann problem (target orbit radius)
         'fuel2', # on fuel station
+        'startfuel', # for scoring
         'collected', # list of bools
+        'collectionTime', # list of 
         'moon', # moon also listed in 'objects' last
         'cobjects', # objects coords as complex numbers
         )
@@ -76,6 +78,7 @@ class VMInterface(object):
         self.llvm = llvm
         self.time = 0
         self.state = State()
+        self.running = True
         
     def clone(self):
         return deepcopy(self)
@@ -115,34 +118,60 @@ class VMInterface(object):
         
     def updateState(self):
         output = self.llvm.getoutput()
-        self.state.time = self.time
-        self.state.score = output[0]
-        self.state.fuel = output[1]
-        self.state.objects = []
+        state = self.state
+        state.time = self.time
+        state.score = output[0]
+        self.running = self.state.score == 0.0
+        state.fuel = output[1]
+        state.startfuel = state.fuel
+        if self.time == 1:
+            # create stuff
+            if    1001 <= state.scenario <= 1004:
+                state.objects = [None]
+            elif (2001 <= state.scenario <= 2004 or
+                  3001 <= state.scenario <= 3004):
+                state.objects = [None]*2
+            elif  4001 <= state.scenario <= 4004:
+                state.objects = [None] * 15 # + moon
+                state.collected = [False] * 12
+                state.collectionTime = [0] * 14 # offsetted for convenience
+                state.startfuel += output[6]
+            else:
+                assert False,'unknown scenario'
         
         x,y = (-output[2], -output[3])
-        self.state.objects.append((x,y))
-        self.state.r = sqrt(x**2 + y**2)
-        if self.state.scenario >= 1001 and self.state.scenario <= 1004:
-            self.state.radius = output[4]
-        elif self.state.scenario >= 2001 and self.state.scenario <= 2004 or\
-            self.state.scenario >= 3001 and self.state.scenario <= 3004:
-            self.state.objects.append((x+output[4],y+output[5]))
-        elif self.state.scenario >= 4001 and self.state.scenario <= 4004:
+        state.objects[0] = (x, y)
+        state.r = sqrt(x**2 + y**2)
+        if 1001 <= state.scenario <= 1004:
+            state.radius = output[4]
+        elif (2001 <= state.scenario <= 2004 or
+              3001 <= state.scenario <= 3004):
+            state.objects[1] = (x + output[4], y + output[5])
+        elif 4001 <= state.scenario <= 4004:
             # fuel station
-            self.state.objects.append((x+output[4],y+output[5]))
-            self.state.fuel2 = output[6]
-            self.state.collected = []
-            assert len(self.state.objects)==2
+            state.objects[1] = (x + output[4], y + output[5])
+            state.fuel2 = output[6]
             for i in range(12):
-                self.state.objects.append((x+output[3*i+7],y+output[3*i+8]))
-                self.state.collected.append(output[3*i+9] == 1.0)
-            self.state.moon = (x+output[0x64],y+output[0x65])
-            self.state.objects.append(self.state.moon)
+                i2 = i + 2
+                state.objects[i2] = (x+output[3*i+7], y+output[3*i+8])
+                if output[3*i + 9] == 1.0:
+                    state.collected[i] = True 
+                    if not state.collectionTime[idx]:
+                        state.collectionTime[idx] = self.time
+            state.moon = (x+output[0x64],y+output[0x65])
+            state.objects[14] = state.moon
         else:
             assert False,'unknown scenario'
         self.state.cobjects = [complex(*o) for o in self.state.objects]
 
+    def getApproxScore(self):
+        state = self.state
+        assert 4001 <= state.scenario <= 4004
+        score_t = sum(2*10**6 - x for x in state.collectionTime if x != 0.0) / (24.0 * 10**6)
+        unscaled = 75 * score_t + 25 * (state.fuel + state.fuel2) / state.startfuel
+        print score_t, unscaled
+        return 8.0 * unscaled 
+        
     def getStats(self):
         assert False,"Stop using this deprecated shit! use 'state' instead"
         

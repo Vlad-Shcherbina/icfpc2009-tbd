@@ -260,7 +260,6 @@ def process_file(filename):
     src = open(filename, 'rb').read()
     ops = decode_src(src)
     declarations, statements, data, datamap = create_compilation_items(ops)
-    print data
     vm = vm_description(declarations, statements, len(data), MAX_OUT_PORTS, 
                         tuple(data), tuple(datamap))
     

@@ -7,6 +7,7 @@ earthMass = 6e24
 moonMass = 7.347e22
 mu = G*earthMass
 moonMu = G*moonMass
+earthRadius = 6357000.0
 
 def periodByRadius(r):
     r = abs(r)
