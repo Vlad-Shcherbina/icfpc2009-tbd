@@ -167,6 +167,7 @@ class VMInterface(object):
     def getApproxScore(self):
         state = self.state
         assert 4001 <= state.scenario <= 4004
+        assert state.collectionTime[1] == 0.0
         score_t = sum(2*10**6 - x for x in state.collectionTime if x != 0.0) / (24.0 * 10**6)
         unscaled = 75 * score_t + 25 * (state.fuel + state.fuel2) / state.startfuel
         return 8.0 * unscaled 

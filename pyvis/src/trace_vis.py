@@ -101,8 +101,11 @@ def resize(w,h):
 #############################3
 
 def needCollect(vm,index):
+    if vm.state.fuel < 4000:
+        return index == 1 #hunger!
+      
     if index == 1:
-        return vm.state.fuel<3000
+        return vm.state.fuel<5000
     elif index >= 2 and index < 2+12:
         return not vm.state.collected[index-2] and \
             vm.state.cobjects[index] != vm.state.cobjects[0] # because 12-th object is bullshit
@@ -144,18 +147,22 @@ def tryCollect(hvm,switch,timeCost):
     t,r2,index = switch
     
     if r2>1e9:
-        return (-1e20,None,None,None)
+        return (-1e20,None,None,None,None)
     
     hvm,controls,expectedTime = performHohmann(hvm,t,r2)
     
     fu = fuelUse(controls)
     
     if fu > hvm.state.fuel+20:
-        return (-1e20,None,None,None)
+        return (-1e20,None,None,None,None)
     
-    score = -75.0/24e6*(expectedTime-t)*timeCost-25*fu/totalFuel
+    score = -75.0/24e6*(expectedTime-t)*timeCost-25*fu/hvm.state.startfuel
+    
     if index >= 2 and index < 12+2:
         score += 75*(1.0/12)
+        
+    if hvm.state.fuel < 5000 and index == 1:
+        score += 100500 # check fueller first
     
     return (8*score,hvm,controls,index,expectedTime)
     
@@ -165,13 +172,25 @@ def collect(hvm,timeCost,maxResults=1):
     hvm = ensureCircularOrbit(hvm)
     
     switchings = []
-    for index in range(15):
+    for index in range(2,12+2):
         if needCollect(hvm,index):
             switchings += getSwitchings(hvm.vm,index,lookAhead=500000)
 #    print 'got',len(switchings),'switchings'
     switchings.sort()
     switchings = switchings[:10]
+    
+    if hvm.state.fuel < 9000:
+        fuelSwitchings = getSwitchings(hvm.vm,1,lookAhead=500000)
+        fuelSwitchings.sort()
+        switchings += fuelSwitchings[:1] # have at least one emergency switches! 
+    
+    if len(switchings)>0:
+        # factor out common part of execution for all tries
+        minT = min(sw[0] for sw in switchings)
+        hvm.executeSteps(minT-hvm.state.time) 
+    
     tries = [tryCollect(hvm,sw,timeCost) for sw in switchings]
+    
     
     tries.sort()
     tries.reverse()
@@ -183,9 +202,6 @@ def collect(hvm,timeCost,maxResults=1):
         
         if sc < -1e15:
             continue
-        #print index
-        
-        #print 'score estimate',sc
         
         try:
             controls = tryImprove(hvm.vm,index,controls,
@@ -215,16 +231,20 @@ def solve(hvm):
     print 'currently at',hvm.comment
     verify(hvm)
     unCollected = len([i for i in range(15) if needCollect(hvm,i)])
-    for newHvm in collect(hvm,timeCost=unCollected,maxResults=2):
+    for newHvm in collect(hvm,timeCost=unCollected,maxResults=branching):
         solve(newHvm)
 
 def main():
+    global branching
+    branching = 1
+    
+    
     global winW,winH
     global states,scale
     
+    
     global step
     global history
-    global totalFuel
     
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
@@ -247,8 +267,7 @@ def main():
     vm0 = vm.clone()
     
     print 'fuel',vm.state.fuel
-    totalFuel = vm.state.fuel+vm.state.fuel2
-
+    
     
     step = 300
     maxTime = 2000000/10
@@ -265,6 +284,7 @@ def main():
     
     endTime = bestHvm.state.time
     
+    print 'best solution',bestHvm.comment
     print 'approx score',bestHvm.vm.getApproxScore()
     
     vm = vm0.clone()
@@ -284,9 +304,9 @@ def main():
         
     vm = vm0.clone()
     states = []
-    for i in range(1,endTime,50):
+    for i in range(1,endTime,100):
         states.append(deepcopy(vm.state))
-        vm.executeSteps(50,controls)
+        vm.executeSteps(100,controls)
     
         
     scale = max(sqrt(x*x+y*y) 
