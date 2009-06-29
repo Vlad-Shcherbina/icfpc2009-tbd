@@ -226,6 +226,10 @@ def verify(hvm):
         print 'found better solution (%s, fuel=%s,%s)'%\
             (score,int(hvm.state.fuel),hvm.comment)
         bestHvm = hvm
+        with open('solutions/tmp_sol%s_'%(scenario),
+                  'wb') as fout:
+            controls = bestHvm.commands
+            fout.write(getSolution(scenario,2000001,controls))
         
 def solve(hvm):
     print 'currently at',hvm.comment
@@ -236,11 +240,12 @@ def solve(hvm):
 
 def main():
     global branching
-    branching = 1
+    branching = 2
     
     
     global winW,winH
     global states,scale
+    global scenario
     
     
     global step
@@ -270,7 +275,7 @@ def main():
     
     
     step = 300
-    maxTime = 2000000/10
+    maxTime = 2000000
     
     history = getHistory(vm,step,maxTime)[:maxTime//step]
     
