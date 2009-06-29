@@ -123,9 +123,9 @@ class VMInterface(object):
         state.score = output[0]
         self.running = self.state.score == 0.0
         state.fuel = output[1]
-        state.startfuel = state.fuel
         if self.time == 1:
             # create stuff
+            state.startfuel = state.fuel
             if    1001 <= state.scenario <= 1004:
                 state.objects = [None]
             elif (2001 <= state.scenario <= 2004 or
@@ -134,7 +134,7 @@ class VMInterface(object):
             elif  4001 <= state.scenario <= 4004:
                 state.objects = [None] * 15 # + moon
                 state.collected = [False] * 12
-                state.collectionTime = [0] * 14 # offsetted for convenience
+                state.collectionTime = [0] * 15 # offsetted for convenience
                 state.startfuel += output[6]
             else:
                 assert False,'unknown scenario'
@@ -156,8 +156,8 @@ class VMInterface(object):
                 state.objects[i2] = (x+output[3*i+7], y+output[3*i+8])
                 if output[3*i + 9] == 1.0:
                     state.collected[i] = True 
-                    if not state.collectionTime[idx]:
-                        state.collectionTime[idx] = self.time
+                    if not state.collectionTime[i2]:
+                        state.collectionTime[i2] = self.time
             state.moon = (x+output[0x64],y+output[0x65])
             state.objects[14] = state.moon
         else:
