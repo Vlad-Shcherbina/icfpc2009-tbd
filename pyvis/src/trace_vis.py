@@ -160,7 +160,7 @@ def tryCollect(hvm,switch,timeCost):
     return (8*score,hvm,controls,index,expectedTime)
     
 
-def collect(hvm,timeCost):
+def collect(hvm,timeCost,maxResults=1):
     hvm = hvm.clone()
     hvm = ensureCircularOrbit(hvm)
     
@@ -168,30 +168,55 @@ def collect(hvm,timeCost):
     for index in range(15):
         if needCollect(hvm,index):
             switchings += getSwitchings(hvm.vm,index,lookAhead=500000)
-    print 'got',len(switchings),'switchings'
+#    print 'got',len(switchings),'switchings'
     switchings.sort()
     switchings = switchings[:10]
-    
     tries = [tryCollect(hvm,sw,timeCost) for sw in switchings]
+    
     tries.sort()
     tries.reverse()
-        
-    sc,hvm,controls,index,expectedTime = tries[0]
-    print index
     
-    print 'score estimate',sc
+    result = []
     
-    try:
-        controls = tryImprove(hvm.vm,index,controls,
-                              [hvm.state.time],
-                              expectedTime,expectedTime+1)
-    except ImproverFailure as e:
-        print e
+    for tr in tries:
+        sc,hvm,controls,index,expectedTime = tr
         
-    hvm.executeSteps(expectedTime-hvm.state.time+1,controls)
-    print 'fuel remaining',hvm.state.fuel
-    return hvm
-
+        if sc < -1e15:
+            continue
+        #print index
+        
+        #print 'score estimate',sc
+        
+        try:
+            controls = tryImprove(hvm.vm,index,controls,
+                                  [hvm.state.time],
+                                  expectedTime,expectedTime+1)
+        except ImproverFailure as e:
+            print e
+            
+        hvm.executeSteps(expectedTime-hvm.state.time+1,controls)
+        
+        hvm.comment += " -> "+str(index)
+        #print 'fuel remaining',hvm.state.fuel
+        result.append(hvm)
+        if len(result) == maxResults:
+            break
+    return result
+bestHvm = None
+def verify(hvm):
+    global bestHvm
+    score = hvm.vm.getApproxScore()
+    if bestHvm is None or bestHvm.vm.getApproxScore()<score:
+        print 'found better solution (%s, fuel=%s,%s)'%\
+            (score,int(hvm.state.fuel),hvm.comment)
+        bestHvm = hvm
+        
+def solve(hvm):
+    print 'currently at',hvm.comment
+    verify(hvm)
+    unCollected = len([i for i in range(15) if needCollect(hvm,i)])
+    for newHvm in collect(hvm,timeCost=unCollected,maxResults=2):
+        solve(newHvm)
 
 def main():
     global winW,winH
@@ -232,17 +257,16 @@ def main():
     
     hvm = HistoryVM(vm)
     
-    hvm = collect(hvm,timeCost=2)
-    hvm = collect(hvm,timeCost=1)
-    hvm = collect(hvm,timeCost=1)
+    solve(hvm)
     
+    controls = bestHvm.commands
     print 'final controls'
-    controls = hvm.commands
     pprint(sorted(controls.items()))
     
-    endTime = hvm.state.time
+    endTime = bestHvm.state.time
     
-    #print controls
+    print 'approx score',bestHvm.vm.getApproxScore()
+    
     vm = vm0.clone()
     print 'evaluating score...'
     vm.executeSteps(2000000,controls)

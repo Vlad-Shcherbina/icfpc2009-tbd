@@ -182,11 +182,12 @@ class VMInterface(object):
         print 'coords: ',self.state.objects[0]
 
 class HistoryVM(object):
-    __slots__ = ('vm','commands','state')
+    __slots__ = ('vm','commands','state','comment')
     def __init__(self,vm,commands={}):
         self.vm = vm
         self.commands = commands
         self.state = self.vm.state
+        self.comment = ""
     def clone(self):
         return deepcopy(self)
     def executeSteps(self,steps,controls={}):
