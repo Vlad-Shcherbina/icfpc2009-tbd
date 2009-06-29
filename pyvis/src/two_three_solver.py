@@ -124,7 +124,7 @@ def tryMeetGreet(vm,controls,switch):
     
     
 
-def main():
+def main(task, scenario):
     global winW,winH
     global states,scale
     glutInit(sys.argv)
@@ -137,11 +137,10 @@ def main():
     glutKeyboardFunc(keyboard)
     glutIdleFunc(idle)
 
-    scenario = 3002
-    vm = createScenario('compiled','../../task/bin3.obf',scenario)
+    vm = createScenario('compiled', task, scenario)
     print 'fuel',vm.state.fuel
 
-    if scenario == 3003:
+    if True or scenario == 3003:
         step,maxTime = 500,1000000
     else:
         step,maxTime = 100,200000
@@ -221,7 +220,10 @@ def main():
 
     #scale = max(scale,1e7)
     
-    glutMainLoop()
+    #glutMainLoop()
 
-if __name__ == '__main__': 
-    main()
+if __name__ == '__main__':
+#    for i in range(4): 
+#        main('../../task/bin3.obf', 3001.0 + i)
+    for i in range(4): 
+        main('../../task/bin3.obf', 3001.0 + i)

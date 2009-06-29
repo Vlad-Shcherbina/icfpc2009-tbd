@@ -265,7 +265,7 @@ def main():
         scenario = int(sys.argv[1])
         noVis = True
     else:
-        scenario = 4001
+        scenario = 4004
         noVis = False
         
     vm = createScenario('compiled','../../task/bin4.obf',scenario)
