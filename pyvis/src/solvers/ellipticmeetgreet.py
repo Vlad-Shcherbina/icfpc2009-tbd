@@ -24,32 +24,23 @@ if __name__ == '__main__':
     scenario = 3000 + int(sys.argv[1])    
     vm = VM.createScenario("../../../task/bin3.obf", scenario)
 
-    pos1 = vm.state.objects[0]
+    pos1 = vm.state.objects[1]
     vm.executeSteps(1, {})
-    pos2 = vm.state.objects[0]
-    (x1,y1), (x2,y2) = pos1, pos2
+
+    pos2 = vm.state.objects[1]
     
-    v = o.vLen(o.vDiff(pos2, pos1))
     r1 = o.vLen(pos1)
-    r2 = o.vLen(pos1)
+    v = o.vLen(o.vDiff(pos2, pos1))
+    a = 1/(2/r1 - v**2/o.mu)    # the major semi-axis obtained from the vis-viva equation
     
-    a = 1/(2/r1 - v**2/o.mu)
+    vm.executeSteps(1, {})
+    pos3 = vm.state.objects[1]
     
-    
-    print (x1, y1, abs(2*a - r1)), (x2, y2, abs(2*a - r2))
-    
-    
-    # one of those is the other focus of the orbit, which is shown in the cycle below
-    focus1, focus2 = o.circleIntersection((x1, y1, abs(2*a - r1)), \
-                                          (x2, y2, abs(2*a - r2)))
-    
-    print focus1, focus2
+    focus = o.getFocus(a, pos1, pos2, pos3)
     
     while True:
-        pos = vm.state.objects[0]
-        sum1 = o.vLen(pos) + o.vLen(o.vDiff(pos, focus1))
-        sum2 = o.vLen(pos) + o.vLen(o.vDiff(pos, focus2))
-        print sum1, sum2
+        pos = vm.state.objects[1]
+        print o.vLen(pos) + o.vLen(o.vDiff(pos, focus))
         vm.executeSteps(1, {})
            
     

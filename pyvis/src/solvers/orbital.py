@@ -30,8 +30,8 @@ def vAngle(v):
 
 def circleIntersection(circle1, circle2):
     # http://2000clicks.com/mathhelp/GeometryConicSectionCircleIntersection.htm
-    xA, yA, rA = circle1
-    xB, yB, rB = circle2
+    (xA, yA), rA = circle1
+    (xB, yB), rB = circle2
     cA, cB = (xA, yA), (xB, yB)
     
     d = vLen(vDiff(cA, cB))
@@ -42,6 +42,24 @@ def circleIntersection(circle1, circle2):
     
     return (vSum(firstTerm, secondTerm), vDiff(firstTerm, secondTerm))
 
+
+def getFocus(a, point1, point2, point3):
+    """ Return the second (non-zero) focus of the orbit given the major semi-axis
+        and 3 points on the trajectory. (This is redundant, of course.) """
+    
+    r1, r2 = vLen(point1), vLen(point2) 
+    
+    # only one of these is a focus
+    focus1, focus2 = circleIntersection((point1, abs(2*a - r1)), \
+                                        (point2, abs(2*a - r2)))
+    
+    # we use the third sample to find out which
+    sum11 = vLen(point1) + vLen(vDiff(point1, focus1))
+    sum12 = vLen(point1) + vLen(vDiff(point1, focus2))
+    sum31 = vLen(point3) + vLen(vDiff(point3, focus1))
+    sum32 = vLen(point3) + vLen(vDiff(point3, focus2))
+    
+    return focus1 if abs(sum11 - sum31) < abs(sum12 - sum32) else focus2    
     
     
     
