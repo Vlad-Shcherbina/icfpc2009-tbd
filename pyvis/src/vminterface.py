@@ -85,6 +85,7 @@ class VMInterface(object):
         return steps
 
     def executeSteps(self, steps, controls = {}):
+        assert isinstance(steps,int)
         t = self.time
         base = t
         endT = t + steps
