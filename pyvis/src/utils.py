@@ -72,7 +72,9 @@ def getObjCSpeeds(vm):
         moon = vm.state.cobjects[-1]
     else:
         moon = None
-    for o,o1 in zip(vm.state.cobjects,vm1.state.cobjects):
+    for i in range(len(vm.state.cobjects)):
+        o = vm.state.cobjects[i]
+        o1 = vm1.state.cobjects[i]
         speeds.append(o1-o-0.5*gravForce(o,moon))
     return speeds
 
@@ -87,12 +89,16 @@ def rotationDir(s,v):
     else:
         return -1j
     
-def ensureCircularOrbit(vm):
+def ensureCircularOrbit(vm,controls):
+    vm = vm.clone()
+    assert vm.state.time not in controls
     speeds = getObjCSpeeds(vm)        
     s = vm.state.cobjects[0]
     v0 = speeds[0]
     v = (s/abs(s))*rotationDir(s,v0)*speedByRadius(s)
-    return {1:complToPair(v-v0)}    
+    controls = combineControls(controls,{vm.state.time:complToPair(v-v0)})
+    vm.executeSteps(1,controls)
+    return vm,controls
 
 def combineControls(controls1,controls2):
     result = deepcopy(controls1)
@@ -105,7 +111,7 @@ def combineControls(controls1,controls2):
     return result
             
 def getHistory(vm,step,maxTime=30000000):
-    print 'collecting hisotry...',
+    print 'collecting history...',
     vm = vm.clone()
     n = len(vm.state.cobjects)
     history = []
