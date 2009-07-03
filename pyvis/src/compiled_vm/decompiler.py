@@ -54,13 +54,13 @@ class OperationEx(Operation):
         s += " used by " + opaddrs(self.usedby)
         return s
     
-    def mark_reachable(self, reachable = False):
+    def mark_reachable(self):
+        # 'reachable' means backward reachable from given instruction,
+        # thus read 'reachable' as '(in)directly used in'
         if not self.reachable:
-            if self.op == asm.out: reachable = True
-            if reachable:
-                self.reachable = True
-                for o in self.uses:
-                    o.mark_reachable(True)
+            self.reachable = True
+            for o in self.uses:
+                o.mark_reachable()
     
     def determine_type(self):
         self.temporary = False
@@ -207,7 +207,9 @@ class OperationEx(Operation):
 
 def create_compilation_items(ops):
     for op in ops: op.updateLinks(ops)
-    for op in ops: op.mark_reachable()
+    for op in ops:
+        if op.op == asm.out:
+            op.mark_reachable()
     reachable = []
     unreachable = []
     for op in ops:
