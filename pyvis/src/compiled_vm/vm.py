@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import decompiler
+#import decompiler_simple as decompiler
 import compiler
 import time
 import os.path
@@ -61,10 +62,16 @@ def changedir(dir = None, file = None):
 
 
 class CompiledVMConstructor(object):
-    def __init__(self, filename):
-        vm_name = 'cvm_' + os.path.splitext(os.path.basename(filename))[0] + '.pyd'
+    def __init__(self, filename,sliced=False):
+        vm_name = 'cvm_' + os.path.splitext(os.path.basename(filename))[0]
+        if sliced:
+            vm_name += '_sliced'
+        vm_name += '.pyd'
         print 'Constructing VM for "' + filename + '" as ' + vm_name
-        self.vm_desc = vm_desc = decompiler.process_file(filename)
+        if sliced:
+            self.vm_desc = vm_desc = decompiler.process_file(filename,interestingPorts=[0x02,0x03])
+        else:
+            self.vm_desc = vm_desc = decompiler.process_file(filename)
         sourcetime = os.path.getmtime(filename)
         
         with changedir(file = __file__):
@@ -79,7 +86,7 @@ class CompiledVMConstructor(object):
                            'compiled_vm.c']
                 sourcetime = max([os.path.getmtime(s) for s in sources] + [sourcetime])  
                 if sourcetime < filetime:
-                    print 'Skipping rebuild'
+                    #print 'Skipping rebuild'
                     rebuild = False
             if rebuild: compiler.build(vm_name)
             self.vmwrapper = compiler.vmwrapper(vm_name, vm_desc)
@@ -90,14 +97,30 @@ class CompiledVMConstructor(object):
 
 
 if __name__ == '__main__':
-    constructor = CompiledVMConstructor('../../../task/bin4.obf')
-    vm = constructor.newvm(4001.0)
     
-    clock = time.clock()   
-    print vm.run(10000, 0, 0)
+    obf = '../../../task/bin4.obf'
+    scenario = 4001.0
+    steps = 2000000
+    
+    print 'full version'
+    constructor = CompiledVMConstructor(obf)
+    vm = constructor.newvm(scenario)
+    print 'memory size:',vm.vm_desc.memorysize
+    clock = time.clock()
+    print vm.run(steps, 0, 0)
     print time.clock() - clock
     print list(vm.output)
-    vm.print_memory_map()
+    #vm.print_memory_map()
     
+    print
+    print 'sliced version'
+    constructor = CompiledVMConstructor(obf,sliced=True)
+    vm = constructor.newvm(scenario)
+    print 'memory size:',vm.vm_desc.memorysize
+    clock = time.clock()
+    print vm.run(steps, 0, 0)
+    print time.clock() - clock
+    print list(vm.output)
+    #vm.print_memory_map()
     
     

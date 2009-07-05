@@ -1,5 +1,6 @@
 import distutils
 from distutils.core import setup, Extension
+import distutils.dir_util
 from ctypes import *
 import platform
 import shutil
@@ -17,12 +18,18 @@ def build(target):
                    ['compiled_vm.c'],
                    extra_compile_args = compiler_args,
                    depends = ['compiled_vm_declarations.inc', 'compiled_vm_statements.inc'])
- 
+    
+    distutils.dir_util._path_created = {} # because of bug in dir_util! fuck'em
     setup(name = 'compiled vm module',
           version = '1.0',
           ext_modules = [ext],
           script_args = ['build_ext', '--inplace'])
-    shutil.copy('compiled_vm.pyd', target)
+    
+    shutil.move('compiled_vm.pyd', target)
+    shutil.rmtree('build')
+    # to prevent setup from using result of compilation that happens 0.000001 seconds
+    # before, but for different machine.
+    # (and aslo to make this dir look cleaner)
 
 def savefiles(declarations, statements):
     open('compiled_vm_declarations.inc', 'w').write(declarations)

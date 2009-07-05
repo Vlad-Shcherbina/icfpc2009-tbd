@@ -205,16 +205,16 @@ class OperationEx(Operation):
         
 
 
-def create_compilation_items(ops):
+def create_compilation_items(ops,interestingPorts):
     for op in ops: op.updateLinks(ops)
     for op in ops:
-        if op.op == asm.out:
+        if op.op == asm.out and op.r1 in interestingPorts:
             op.mark_reachable()
     reachable = []
     unreachable = []
     for op in ops:
         (reachable if op.reachable else unreachable).append(op)
-    if unreachable: print 'Unreachable count:', len(unreachable) 
+    #if unreachable: print 'Unreachable count:', len(unreachable) 
     ops = reachable
     for op in ops: op.determine_type()
     
@@ -258,11 +258,12 @@ class vm_description(object):
         self.memorymap = memorymap
 
  
-def process_file(filename):
+def process_file(filename,interestingPorts=range(MAX_OUT_PORTS)):
     src = open(filename, 'rb').read()
     ops = decode_src(src)
-    declarations, statements, data, datamap = create_compilation_items(ops)
-    vm = vm_description(declarations, statements, len(data), MAX_OUT_PORTS, 
+    declarations, statements, data, datamap = create_compilation_items(ops,interestingPorts)
+    
+    vm = vm_description(declarations, statements, len(data), max(interestingPorts)+1, 
                         tuple(data), tuple(datamap))
     
 #    memory = list(data)
