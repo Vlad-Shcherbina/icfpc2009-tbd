@@ -31,7 +31,7 @@ sys.stdout=_Unbuffered(sys.stdout)
 __all__ = [
     "teamID",
     "createScenario",
-    "historyVM",
+    "HistoryVM",
     "getSolution",
     "parseSolution",
     "vmconstructors",
@@ -164,10 +164,17 @@ class VMInterface(object):
             assert False,'unknown scenario'
         self.state.cobjects = [complex(*o) for o in self.state.objects]
 
+    def visitFuelStation(self):
+        # because of bug!
+        if self.state.collectionTime[1] == 0.0:
+            self.state.collectionTime[1] = self.state.time
+    
+    def fuelStationVisited(self):
+        return self.state.collectionTime[1] != 0.0
+
     def getApproxScore(self):
         state = self.state
         assert 4001 <= state.scenario <= 4004
-        assert state.collectionTime[1] == 0.0
         score_t = sum(2*10**6 - x for x in state.collectionTime if x != 0.0) / (24.0 * 10**6)
         unscaled = 75 * score_t + 25 * (state.fuel + state.fuel2) / state.startfuel
         return 8.0 * unscaled 
